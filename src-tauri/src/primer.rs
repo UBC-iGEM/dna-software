@@ -6,20 +6,23 @@ use rand::{
     prelude::{Distribution, SliceRandom},
     Rng,
 };
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum MeltingTemperatureConstraint {
     Below,
     Above,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// make specific ranges for different lengths
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub struct MeltingTemperature {
     temperature: usize,
     constraint: MeltingTemperatureConstraint,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 enum Base {
     A,
     T,
@@ -40,7 +43,7 @@ impl Distribution<Base> for Standard {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Primer(Vec<Base>);
 
 impl Primer {
@@ -195,4 +198,13 @@ mod tests {
         dbg!(primers.len());
         assert!(!primers.is_empty());
     }
+
+    #[test]
+    fn secondary_structure() {
+        // let goob = "GCATACTATCATTCGGGG";
+        // let bad = "GCTAATGGGTATTGGGGG";
+    }
+
+    #[test]
+    fn twenty_four_nt() {}
 }
