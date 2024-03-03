@@ -1,7 +1,23 @@
 use std::iter;
 
 use itertools::Itertools;
-use rand::{prelude::SliceRandom, Rng};
+use rand::{
+    distributions::Standard,
+    prelude::{Distribution, SliceRandom},
+    Rng,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MeltingTemperatureConstraint {
+    Below,
+    Above,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MeltingTemperature {
+    temperature: usize,
+    constraint: MeltingTemperatureConstraint,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Base {
@@ -11,21 +27,31 @@ enum Base {
     C,
 }
 
-const BASES: [Base; 4] = [Base::A, Base::T, Base::G, Base::C];
+impl Distribution<Base> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Base {
+        let idx = rng.gen_range(0..4);
+        match idx {
+            0 => Base::A,
+            1 => Base::T,
+            2 => Base::G,
+            3 => Base::C,
+            _ => unreachable!(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Primer(Vec<Base>);
 
 impl Primer {
-    const POOL_SIZE: usize = 8;
+    const POOL_SIZE: usize = 1000;
     fn generate_initial_primers(len: usize, len_g: usize) -> Vec<Self> {
         (0..Self::POOL_SIZE)
             .map(|_| {
                 Self(
-                    BASES
-                        .choose_multiple_weighted(&mut rand::thread_rng(), len, |_| 1)
-                        .unwrap()
-                        .copied()
+                    rand::thread_rng()
+                        .sample_iter(Standard)
+                        .take(len)
                         .chain(iter::repeat(Base::G).take(len_g))
                         .collect(),
                 )
@@ -33,10 +59,10 @@ impl Primer {
             .collect()
     }
 
-    fn melting_temperature(&self) -> usize {
-        let num_gc = self.num_gc();
+    fn melting_temperature(&self) -> f64 {
+        let num_gc = self.num_gc() as f64;
 
-        4 * num_gc + 2 * (self.0.len() - num_gc)
+        4.0 * num_gc + 2.0 * (self.0.len() as f64 - num_gc)
     }
 
     fn num_gc(&self) -> usize {
@@ -57,31 +83,39 @@ impl Primer {
         )
     }
 
-    fn good_melting_temperature(&self, melting_temperature: usize) -> bool {
-        (melting_temperature - 1..=melting_temperature + 1).contains(&self.melting_temperature())
+    // minimum: 36, maximum: 60
+    fn good_melting_temperature(&self, melting_temperature: MeltingTemperature) -> bool {
+        let range = match melting_temperature.constraint {
+            MeltingTemperatureConstraint::Below => 36.0..=melting_temperature.temperature as f64,
+            MeltingTemperatureConstraint::Above => melting_temperature.temperature as f64..=60.0,
+        };
+        range.contains(&self.melting_temperature())
     }
 
-    fn fitness(&self, melting_temperature: usize) -> f64 {
+    fn fitness(&self, melting_temperature: MeltingTemperature) -> f64 {
         let mut score = 0_f64;
+
         // Start with G or C
         if self.starts_with_gc() {
             score += 5.0
         }
 
         // GC content: 40-60%
-        // TODO: should fail on below 40 or above 60?
         let gc_content = self.gc_content();
         if self.good_gc_content() {
             score += (1.0 - (0.52 - gc_content).abs()) * 5.0;
         }
 
-        // Melting temperature?
-        // TODO: no minimum??????
+        // Melting temperature? 36-46
+        // Range between melting T of thermostable and wt tdt
         // salt???
-        score += 1.0
-            / (self.melting_temperature() as isize - melting_temperature as isize).pow(2) as f64;
+        if self.good_melting_temperature(melting_temperature) {
+            score += 1.0
+                / (self.melting_temperature() as isize - melting_temperature.temperature as isize)
+                    .pow(2) as f64;
+        }
 
-        // Secondary structure
+        // Secondary structure, only self primer hairpin
         // TODO: only hairpin?
 
         score
@@ -91,11 +125,14 @@ impl Primer {
         self.num_gc() as f64 / self.0.len() as f64
     }
 
-    pub fn generate(total_len: usize, melting_temperature: usize, len_g: usize) -> Vec<Self> {
+    pub fn generate(
+        total_len: usize,
+        melting_temperature: MeltingTemperature,
+        len_g: usize,
+    ) -> Vec<Self> {
         let len_no_g = total_len - len_g;
         let mut initial_primers = Self::generate_initial_primers(len_no_g, len_g);
         const MUTATION_RATE: f64 = 0.8;
-        dbg!(&initial_primers);
 
         loop {
             let parents = initial_primers
@@ -116,7 +153,7 @@ impl Primer {
                 .map(|mut c| {
                     if rand::thread_rng().gen_bool(MUTATION_RATE) {
                         let index = rand::thread_rng().gen_range(0..len_no_g);
-                        c.0[index] = *BASES.choose(&mut rand::thread_rng()).unwrap();
+                        c.0[index] = rand::random();
                     }
                     c
                 })
@@ -126,8 +163,8 @@ impl Primer {
                 .iter()
                 .filter(|p| {
                     p.good_gc_content()
-                        && p.good_melting_temperature(melting_temperature)
                         && p.starts_with_gc()
+                        && p.good_melting_temperature(melting_temperature)
                 })
                 .cloned()
                 .collect();
@@ -138,5 +175,24 @@ impl Primer {
                 initial_primers = mutated_children;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sanity() {
+        let primers = Primer::generate(
+            18,
+            MeltingTemperature {
+                temperature: 46,
+                constraint: MeltingTemperatureConstraint::Above,
+            },
+            4,
+        );
+        dbg!(primers.len());
+        assert!(!primers.is_empty());
     }
 }
