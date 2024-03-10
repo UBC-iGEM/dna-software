@@ -4,31 +4,36 @@ import { invoke } from "@tauri-apps/api/tauri";
 import "./App.css";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const lengths = [5, 15, 18, 20, 24];
+  const meltingTempConstraints = ["Above", "Below"];
+
+  const [length, setLength] = useState(lengths[0]);
+  const [meltingTemp, setMeltingTemperaure] = useState(46);
+  const [meltingTempConstraint, setMeltingTempConstraint] = useState(
+    meltingTempConstraints[0],
+  );
+  const [primers, setPrimers] = useState([] as string[][]);
 
   async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-    setGreetMsg(await invoke("greet", { name }));
+    const meltingTemperature = {
+      temperature: meltingTemp,
+      constraint: meltingTempConstraint,
+    };
+
+    const primers: string[][] = await invoke("generate_primers", {
+      len: length,
+      meltingTemperature,
+      lenG: 4,
+    });
+
+    setPrimers(primers);
   }
 
   return (
     <div className="container">
-      <h1>Welcome to Tauri!</h1>
+      <h1>DNADrive</h1>
 
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
+      <p>Generate some primers.</p>
 
       <form
         className="row"
@@ -38,14 +43,43 @@ function App() {
         }}
       >
         <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+          id="meltingTemperature"
+          onChange={(e) =>
+            setMeltingTemperaure(parseFloat(e.currentTarget.value))
+          }
+          placeholder="Enter a melting temperature..."
+          value={meltingTemp}
         />
+
+        <label htmlFor="lengths">Lengths</label>
+        <select
+          id="lengths"
+          name="lengths"
+          onChange={(e) => setLength(parseInt(e.currentTarget.value))}
+        >
+          {lengths.map((l) => (
+            <option value={l}>{l}</option>
+          ))}
+        </select>
+
+        <label htmlFor="meltingTemperatureConstraint">
+          Above or below melting temperature
+        </label>
+        <select
+          id="meltingTemperatureConstraint"
+          name="meltingTemperatureConstraint"
+          onChange={(e) => setMeltingTempConstraint(e.currentTarget.value)}
+        >
+          {meltingTempConstraints.map((l) => (
+            <option value={l}>{l}</option>
+          ))}
+        </select>
+
         <button type="submit">Greet</button>
       </form>
-
-      <p>{greetMsg}</p>
+      {primers.map((p) => (
+        <p>{p.join("")}</p>
+      ))}
     </div>
   );
 }
