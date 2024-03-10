@@ -1,5 +1,9 @@
 name: Rust
 
+defaults:
+  run:
+    working-directory: ./src-tauri
+    
 on:
   push:
     branches: [ "main" ]
@@ -16,8 +20,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Navigate to src
-      run: cd src-tauri/
     - name: Cache
       uses: Swatinem/rust-cache@v2.7.3
     - name: Build
