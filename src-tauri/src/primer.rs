@@ -1,4 +1,4 @@
-use std::iter;
+use std::{fmt::Display, iter};
 
 use itertools::Itertools;
 use rand::{
@@ -30,6 +30,43 @@ enum Base {
     C,
 }
 
+impl Base {
+    fn complement(&self) -> Self {
+        match self {
+            Base::A => Base::T,
+            Base::T => Base::A,
+            Base::G => Base::C,
+            Base::C => Base::G,
+        }
+    }
+}
+
+impl Display for Base {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let char = match self {
+            Base::A => 'A',
+            Base::T => 'T',
+            Base::G => 'G',
+            Base::C => 'C',
+        };
+        char.fmt(f)
+    }
+}
+
+impl TryFrom<char> for Base {
+    type Error = String;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            'A' => Ok(Base::A),
+            'T' => Ok(Base::T),
+            'G' => Ok(Base::G),
+            'C' => Ok(Base::C),
+            other => Err(format!("Expected one of A, T, G, C, got {other}")),
+        }
+    }
+}
+
 impl Distribution<Base> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Base {
         let idx = rng.gen_range(0..4);
@@ -45,6 +82,27 @@ impl Distribution<Base> for Standard {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Primer(Vec<Base>);
+
+impl Display for Primer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for b in &self.0 {
+            b.fmt(f)?
+        }
+        Ok(())
+    }
+}
+
+impl TryFrom<&str> for Primer {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        value
+            .chars()
+            .map(Base::try_from)
+            .collect::<Result<_, _>>()
+            .map(Primer)
+    }
+}
 
 impl Primer {
     const POOL_SIZE: usize = 1000;
@@ -86,6 +144,30 @@ impl Primer {
         )
     }
 
+    fn reverse_complement(&self) -> Self {
+        Self(self.0.iter().rev().map(|b| b.complement()).collect())
+    }
+
+    fn contains(&self, other: &Self) -> bool {
+        self.0.windows(other.0.len()).any(|w| w == &other.0)
+    }
+
+    fn has_hairpin(&self) -> bool {
+        const MIN_HAIRPIN_LOOP: usize = 4;
+        const MIN_HAIRPIN_LENGTH: usize = 3;
+        for hairpin_len in MIN_HAIRPIN_LENGTH..self.0.len() - MIN_HAIRPIN_LOOP {
+            for i in 0..self.0.len() - hairpin_len - MIN_HAIRPIN_LOOP {
+                let hairpin_candidate =
+                    Primer(self.0[i..i + hairpin_len].to_vec()).reverse_complement();
+                let forward_primer = Primer(self.0[i + hairpin_len + MIN_HAIRPIN_LOOP..].to_vec());
+                if forward_primer.contains(&hairpin_candidate) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
     // minimum: 36, maximum: 60
     fn good_melting_temperature(&self, melting_temperature: MeltingTemperature) -> bool {
         let range = match melting_temperature.constraint {
@@ -119,7 +201,9 @@ impl Primer {
         }
 
         // Secondary structure, only self primer hairpin
-        // TODO: only hairpin?
+        if !self.has_hairpin() {
+            score += 10.0;
+        }
 
         score
     }
@@ -168,6 +252,7 @@ impl Primer {
                     p.good_gc_content()
                         && p.starts_with_gc()
                         && p.good_melting_temperature(melting_temperature)
+                        && !p.has_hairpin()
                 })
                 .cloned()
                 .collect();
@@ -195,14 +280,22 @@ mod tests {
             },
             4,
         );
-        dbg!(primers.len());
         assert!(!primers.is_empty());
     }
 
     #[test]
     fn secondary_structure() {
-        // let goob = "GCATACTATCATTCGGGG";
-        // let bad = "GCTAATGGGTATTGGGGG";
+        let test_cases = [
+            ("GCATACTATCATTCGGGG", false),
+            ("GCTAATGGGTATTGGGGG", true),
+            // ("GGACTATGCTATTGGGGG", false),
+            ("ATCGATCAAAAGATCG", true),
+            ("CCCCATGCATCCCC", false),
+        ];
+        for (primer_str, has_hairpin) in test_cases {
+            let primer = Primer::try_from(primer_str).unwrap();
+            assert_eq!(primer.has_hairpin(), has_hairpin);
+        }
     }
 
     #[test]
