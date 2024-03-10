@@ -149,7 +149,7 @@ impl Primer {
     }
 
     fn contains(&self, other: &Self) -> bool {
-        self.0.windows(other.0.len()).any(|w| w == &other.0)
+        self.0.windows(other.0.len()).any(|w| w == other.0)
     }
 
     fn has_hairpin(&self) -> bool {
