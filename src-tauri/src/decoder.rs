@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use bitvec::{order::Msb0, vec::BitVec};
+use itertools::Itertools;
 
 use crate::primer::Base;
 
@@ -8,10 +9,15 @@ pub trait Decoder {
     fn decode(&self, bases: &Vec<Base>) -> BitVec<u8, Msb0>;
 }
 
-pub struct DummyDecoder {}
-impl Decoder for DummyDecoder {
+pub struct QuaternaryDecoder {}
+impl Decoder for QuaternaryDecoder {
     fn decode(&self, bases: &Vec<Base>) -> BitVec<u8, Msb0> {
-        todo!()
+        BitVec::from_iter(bases.iter().flat_map(|b| match b {
+            Base::A => [true, true],
+            Base::T => [true, false],
+            Base::G => [false, true],
+            Base::C => [false, false],
+        }))
     }
 }
 
@@ -36,15 +42,14 @@ impl Decoder for RotationDecoder {
             )
         }
 
-        let num: u128 = trits
-            .iter()
-            .rev()
-            .zip(0..)
-            .map(|(trit, i)| 3_u128.pow(i) * (*trit as u128))
-            .sum();
+        let chunks = trits.iter().chunks(6);
+        let bytes = chunks.into_iter().map(|chunk| {
+            chunk
+                .zip((0..6).rev())
+                .map(|(trit, i)| 3_u8.pow(i) * (*trit as u8))
+                .sum::<u8>()
+        });
 
-        let bytes = num.to_be_bytes();
-        let bits: BitVec<u8, Msb0> = BitVec::from_slice(&bytes);
-        bits.iter().skip(bits.leading_zeros()).skip(1).collect()
+        BitVec::from_iter(bytes)
     }
 }

@@ -1,6 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![feature(array_windows)]
+#![feature(iter_map_windows)]
+#![feature(iter_array_chunks)]
 
 #[cfg(test)]
 extern crate quickcheck;
