@@ -1,7 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use primer::{MeltingTemperature, Primer};
+use primer::{MeltingTemperature, Primer, PrimerInfo};
 
 mod compressor;
 mod encoder;
@@ -14,7 +14,7 @@ fn generate_primers(
     len: usize,
     melting_temperature: MeltingTemperature,
     len_g: usize,
-) -> Vec<Primer> {
+) -> Vec<PrimerInfo> {
     Primer::generate(len, melting_temperature, len_g)
 }
 
