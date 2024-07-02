@@ -13,12 +13,14 @@ extern crate quickcheck_macros;
 use std::{fs, io};
 
 use bitvec::{order::Msb0, prelude::BitVec};
-use encoder::{Encoder, RotationEncoder};
+use dnaerror::EncodeResult;
+use encoder::{Encoder, QuaternaryEncoder, RotationEncoder};
 use primer::{Base, MeltingTemperature, Primer};
 
 mod chaosdna;
 mod compressor;
 mod decoder;
+mod dnaerror;
 mod encoder;
 mod primer;
 
@@ -33,16 +35,21 @@ fn generate_primers(
 }
 
 #[tauri::command]
-fn encode_sequence(file_path: &str) -> io::Result<Vec<Base>> {
-    let encoder = RotationEncoder {};
-    let bytes = fs::read(file_path)?;
+fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Base>, String> {
+    let bytes = fs::read(file_path).map_err(|err| err.to_string())?;
     let bits = BitVec::<_, Msb0>::from_vec(bytes);
-    Ok(encoder.encode(&bits))
+    let encoder: Box<dyn Encoder> = match encoder_type {
+        "quaternary" => Box::new(QuaternaryEncoder {}),
+        "rotation" => Box::new(RotationEncoder {}),
+        _ => return Err("Selected encoder does not exist.".to_string()),
+    };
+
+    Ok(encoder.encode(&bits).into())
 }
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![generate_primers])
+        .invoke_handler(tauri::generate_handler![generate_primers, encode_sequence])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
