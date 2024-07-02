@@ -1,13 +1,10 @@
 use rand::{Rng, distributions::{Distribution, Standard}};
 use crate::primer::Base;
-// use diff::Diff;
 
 
 pub trait RandError {
-    fn modify_base(&self, initial_seq: &Vec<Base>, prob: f64) -> Vec<Base>; 
-    fn delete_base(&self, initial_seq: &Vec<Base>, prob: f64) -> Vec<Base>;
-    fn full_chaos(&self, initial_seq: &Vec<Base>, mod_prob: f64, del_prob: f64) -> Vec<Base>;
-//    fn diff_chaos(&self, input: &Vec<Base>, del_prob: f64, mod_prob: f64) -> Vec<diff::Result<Base>>;
+    fn modify_base(&self, input_base: &Base) -> Base; 
+    fn full_chaos(&self, initial_seq: &Vec<Base>, edit_prob: f64, mod_prob: f64) -> Vec<Base>;
 }
 
 
@@ -17,60 +14,63 @@ pub struct Chaos {
 
 impl RandError for Chaos {
     // Takes a base vector and probability as input, outputs a base vector with modified bases
-    fn modify_base(&self, initial_seq: &Vec<Base>, prob: f64) -> Vec<Base> {
+    fn modify_base(&self, input_base: &Base) -> Base {
 	let mut rng = rand::thread_rng();
-	initial_seq
-	    .iter()
-	    .map(|base| {
-		// RNG boolean; if true, keeps running until a different base from the original is selected
-		if rng.gen_bool(prob) { 
-                    loop {
-			let new_base = rng.gen::<Base>();
-			if new_base != *base {
-                            return new_base; 
-			}
-                    }
-		    // If RNG boolean is false, returns original (no change)
-		} else {
-                    *base 
-		}
-            })
-	    .collect()
+	loop {
+	    let new_base = rng.gen::<Base>();
+	    if new_base != *input_base {
+		return new_base;
+	    }
+	}
     }
 
-    fn delete_base(&self, initial_seq: &Vec<Base>, prob: f64) -> Vec<Base> {
+
+    fn full_chaos(&self, initial_seq: &Vec<Base>, edit_prob: f64, del_prob: f64) -> Vec<Base> {
 	let mut rng = rand::thread_rng();
 	initial_seq
 	    .iter()
 	    .filter_map(|base| {
-		// RNG boolean; if true, returns nothing
-		if rng.gen_bool(prob) {
-                    None
+		if rng.gen_bool(edit_prob) {
+		    if rng.gen_bool(del_prob) {
+			None
+		    }
+		    else {
+			Some(self.modify_base(base))
+		    }
 		}
-		    // If RNG boolean is false, returns original (no change)
 		else {
-                    Some(*base)
+		    Some(*base)
 		}
-            })
+	    })
 	    .collect()
     }
-
-    fn full_chaos(&self, initial_seq: &Vec<Base>, mod_prob: f64, del_prob: f64) -> Vec<Base> {
-	let mod_seq = self.modify_base(initial_seq, mod_prob);
-	self.delete_base(&mod_seq, del_prob)
-    }
-
-//    fn diff_chaos(&self, initial_seq: &Vec<Base>, mod_prob: f64, del_prob: f64) -> Vec<diff::Result<Base>> {
-//	todo()!
-//    }
 }
 
 
-// Here is some example code that I used to test:
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::primer::Base;
 
-// fn main() {
-//     let chaos = Chaos{};
-//     let initial_sequence = vec![Base::G, Base::T, Base::A, Base::C, Base::C, Base::G, Base::A, Base::T, Base::T, Base::G];
-//     let modified_sequence = chaos.full_chaos(&initial_sequence, 0.2, 0.2);
-//     println!("{:?}", modified_sequence);
-// }
+    #[test]
+    fn test_mutate() {
+        let chaos = Chaos {};
+	let mut rng = rand::thread_rng();
+
+        let initial_sequence: Vec<Base> = (0..10)
+	    .map(|_| rng.gen::<Base>())
+	    .collect();
+	println!("Initial sequence: ");
+	for base in &initial_sequence {
+	    print!("{}", base);
+	}
+	println!();
+	
+        let modified_sequence = chaos.full_chaos(&initial_sequence, 0.3, 0.5);
+	println!("Modified sequence: ");
+	for base in &modified_sequence {
+	    print!("{}", base);
+	}
+	println!();
+    }
+}
