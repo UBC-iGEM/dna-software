@@ -1,7 +1,9 @@
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
+.row {
+  display: flex;
+  flex-direction: row;
 }
 
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafb);
+.col {
+  display: flex;
+  flex-direction: column;
 }
