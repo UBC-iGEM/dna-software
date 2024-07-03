@@ -9,11 +9,13 @@ function Encode() {
   const [filePath, setFilePath] = useState("");
 
   async function encode_sequence() {
+    // TODO: Fix the hack
+    const root = "/home/lucy/iGEM23_24/dnadrive/";
+    const file = filePath.split("\\")[2];
     const encoded_sequence: string[] = await invoke("encode_sequence", {
       encoderType: encoderType,
-      filePath: filePath,
+      filePath: root + file,
     });
-
     setEncodedSequence(encoded_sequence);
   }
   return (
@@ -29,10 +31,12 @@ function Encode() {
         <FormInput className="col">
           <label htmlFor="lengths">File Path</label>
           <input
+            type="file"
             id="filePath"
+            name="filePath"
             onChange={(e) => setFilePath(e.currentTarget.value)}
-            placeholder="Enter a file path..."
             value={filePath}
+            accept=".doc, .txt"
           />
         </FormInput>
 

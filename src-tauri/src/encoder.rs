@@ -62,9 +62,15 @@ fn num_to_digits(mut num: usize, num_base: usize, num_length: usize) -> Vec<u8> 
 pub struct HEDGESEncoder {}
 impl Encoder for HEDGESEncoder {
     fn encode(&self, input: &BitVec<u8, Msb0>) -> Vec<Base> {
+        let pattern = vec![1, 1]; // this is for a code rate of 0.5, HEDGES: Table 3
+        let bit_location = 0;
+        let pattern_flag = 0;
+        let salt_number = 46;
         todo!()
     }
 }
+
+impl HEDGESEncoder {}
 
 #[cfg(test)]
 mod tests {
