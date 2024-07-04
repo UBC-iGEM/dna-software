@@ -10,10 +10,9 @@ extern crate quickcheck;
 #[macro_use(quickcheck)]
 extern crate quickcheck_macros;
 
-use std::{fs, io};
+use std::fs;
 
 use bitvec::{order::Msb0, prelude::BitVec};
-use dnaerror::EncodeResult;
 use encoder::{Encoder, QuaternaryEncoder, RotationEncoder};
 use primer::{Base, MeltingTemperature, Primer};
 
