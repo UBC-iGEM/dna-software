@@ -35,6 +35,7 @@ fn generate_primers(
 
 #[tauri::command]
 fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Base>, String> {
+
     let bytes = fs::read(file_path).map_err(|err| err.to_string())?;
     let bits = BitVec::<_, Msb0>::from_vec(bytes);
     let encoder: Box<dyn Encoder> = match encoder_type {
