@@ -21,6 +21,7 @@ mod compressor;
 mod decoder;
 mod dnaerror;
 mod encoder;
+mod huffman;
 mod primer;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
