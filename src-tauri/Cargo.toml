@@ -18,6 +18,7 @@ rand = "0.8.5"
 itertools = "0.12.1"
 bitvec = "1.0.1"
 thiserror = "1.0.61"
+ordered-float = "4.2.1"
 
 [dev-dependencies]
 quickcheck = "1.0.3"
