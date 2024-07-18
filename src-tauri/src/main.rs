@@ -3,6 +3,7 @@
 #![feature(array_windows)]
 #![feature(iter_map_windows)]
 #![feature(iter_array_chunks)]
+#![feature(hash_raw_entry)]
 
 #[cfg(test)]
 extern crate quickcheck;
