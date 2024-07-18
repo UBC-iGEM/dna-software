@@ -1,66 +1,65 @@
-use crate::exec::Executor;
 use bitvec::prelude::BitVec;
-use std::{path::PathBuf, process::Command};
+use std::{
+    io::{BufRead, BufReader},
+    path::PathBuf,
+    process::{Command, Stdio},
+};
 
 pub trait Compressor {
-    fn compress_llm(&self, filepath: PathBuf) -> PathBuf;
     fn compress(&self, filepath: PathBuf) -> PathBuf;
+    fn compress_llm(&self, filepath: PathBuf) -> PathBuf;
 }
 
 pub struct VoidCompressor {}
 
 impl Compressor for VoidCompressor {
-    fn compress_llm(&self, filepath: PathBuf) -> PathBuf {
-        // Get the name of the input file
-        let filename = filepath.file_stem().unwrap();
-
-        // Root directory of project
-        let executable_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-
-        // Get directory of executable
-        let mut executable_dir = executable_root;
-        executable_dir.push("ts_zip");
-        if cfg!(target_os = "windows") {
-            executable_dir.push("win64");
-        } else if cfg!(target_os = "linux") && cfg!(target_env = "gnu") {
-            executable_dir.push("linux_gnu");
-        }
-
-        // Get path to executable
-        let mut executable_path = executable_dir;
-        if cfg!(target_os = "windows") {
-            executable_path.push("ts_zip.exe");
-        } else if cfg!(target_os = "linux") && cfg!(target_env = "gnu") {
-            executable_path.push("ts_zip");
-        }
-
-        // Get path to model
-        let mut model_path = executable_dir;
-        model_path.push("modelname");
-
-        // Run the ts_zip executable
-        let output_dir = PathBuf::from("/output/dir");
-        let result = self.executor.create_exec(
-            executable_path,
-            &[
-                "-m",
-                model_path.to_str().unwrap(),
-                "c",
-                filepath.to_str().unwrap(),
-                output_dir.to_str().unwrap(),
-            ],
-        );
-
-        if let Err(e) = result {
-            eprintln!("Error executing binary: {}", e);
+    fn compress(&self, inpath: PathBuf) -> PathBuf {
+        let filetype = inpath.extension().unwrap();
+        match filetype {
+            txt | org | md => self.compress_llm(&inpath),
         }
     }
 
-    fn compress(&self, path: PathBuf) -> PathBuf {
-        // write code to find filetype
-        // let mut type = "add here!"
-        //    match type {
-        //    txt | rtf | org | md =>
-        //	self.compress_llm(&path);
+    // Use ts_zip and pipe output to mut progress
+    // Output code from https://stackoverflow.com/questions/31576555/unable-to-pipe-to-or-from-spawned-child-process-more-than-once/31577297#31577297
+    fn compress_llm(&self, inpath: PathBuf) -> PathBuf {
+        let filename = inpath.file_stem().unwrap();
+        let outpath = Path::new("/path/to/data/dir").join(filename).join(".bin");
+        let mut process = Command::new("/path/to/ts_zip")
+            .arg("-m path/to/model")
+            .arg(format!("c {} {}", inpath.display(), outpath.display()))
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("compression process");
+        let stdout = process.stdout.take().unwrap();
+        let mut reader = BufReader::new(stdout);
+        let mut progress_display = String::new();
+        let mut buffer = String::new();
+
+        loop {
+            match reader.read_line(&mut buffer) {
+                Ok(0) => break, // End of stream
+                Ok(_) => {
+                    // Check if the line contains "ratio" before updating progress
+                    if buffer.contains("ratio") {
+                        break;
+                    }
+                    progress_display = buffer.clone();
+                    println!("{}", progress_display);
+                    buffer.clear(); // Clear the buffer for the next line
+                }
+                Err(e) => {
+                    eprintln!("Error reading from ts_zip: {}", e);
+                    break;
+                }
+            }
+        }
+
+        // Wait for the process to finish and handle potential errors
+        if let Err(e) = process.wait() {
+            eprintln!("Error during compression: {}", e);
+        }
+
+        outpath
     }
 }
