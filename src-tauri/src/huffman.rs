@@ -125,17 +125,23 @@ impl HuffmanTree {
         let mut decoded_string = vec![];
 
         for b in bits {
+            dbg!(b);
             match curr_node {
-                HuffmanTree::Leaf(Leaf { symbol_name, .. }) => {
-                    decoded_string.push(symbol_name);
-                    curr_node = self;
-                }
+                HuffmanTree::Leaf(_) => (),
 
                 HuffmanTree::Node(Node { left, right, .. }) => {
                     if b {
                         curr_node = right;
                     } else {
                         curr_node = left;
+                    }
+                    match curr_node {
+                        HuffmanTree::Leaf(Leaf { symbol_name, .. }) => {
+                            dbg!(symbol_name);
+                            decoded_string.push(symbol_name);
+                            curr_node = self;
+                        }
+                        HuffmanTree::Node(_) => {}
                     }
                 }
             }
@@ -146,9 +152,22 @@ impl HuffmanTree {
 
 #[cfg(test)]
 mod tests {
+    use super::HuffmanTree;
 
-    #[quickcheck]
-    fn hufffman_compress_decompress(input: String) -> bool {
-        true
-         }
+    // #[quickcheck]
+    // fn hufffman_compress_decompress(input: String) -> bool {
+    //     let input = "ABDEDDDDEEEEEEEBBBA";
+    //     let dummy_huffmantree = HuffmanTree::construct_tree();
+    //     input == dummy_huffmantree.decode_file(dummy_huffmantree.encode_input(&input))
+    // }
+
+    #[test]
+    fn dummy_hufffman_compress_decompress() {
+        let input = "EDEEEDDBDBDDBDBABABABABAABABDDDEDB";
+        let dummy_huffmantree = HuffmanTree::construct_tree();
+        assert_eq!(
+            input,
+            dummy_huffmantree.decode_file(dummy_huffmantree.encode_input(&input))
+        )
+    }
 }
