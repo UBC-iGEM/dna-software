@@ -1,7 +1,6 @@
-use bitvec::prelude::BitVec;
 use std::{
     io::{BufRead, BufReader},
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
 };
 
@@ -14,9 +13,10 @@ pub struct VoidCompressor {}
 
 impl Compressor for VoidCompressor {
     fn compress(&self, inpath: PathBuf) -> PathBuf {
-        let filetype = inpath.extension().unwrap();
-        match filetype {
-            txt | org | md => self.compress_llm(&inpath),
+        // Access the extension and compare it to string literals
+        match inpath.extension().and_then(|os_str| os_str.to_str()) {
+            Some("txt") | Some("org") | Some("md") => self.compress_llm(inpath),
+            _ => inpath,
         }
     }
 
@@ -24,10 +24,16 @@ impl Compressor for VoidCompressor {
     // Output code from https://stackoverflow.com/questions/31576555/unable-to-pipe-to-or-from-spawned-child-process-more-than-once/31577297#31577297
     fn compress_llm(&self, inpath: PathBuf) -> PathBuf {
         let filename = inpath.file_stem().unwrap();
-        let outpath = Path::new("/path/to/data/dir").join(filename).join(".bin");
+        let outpath = Path::new("/path/to/data/dir")
+            .join(filename)
+            .with_extension("bin"); // Use with_extension for consistency
         let mut process = Command::new("/path/to/ts_zip")
-            .arg("-m path/to/model")
-            .arg(format!("c {} {}", inpath.display(), outpath.display()))
+            // Assuming ts_zip takes arguments this way, otherwise adjust accordingly
+            .arg("-m")
+            .arg("path/to/model")
+            .arg("c")
+            .arg(inpath.as_path().to_str().unwrap()) // Convert PathBuf to &str for display
+            .arg(outpath.as_path().to_str().unwrap())
             .stdout(Stdio::piped())
             .spawn()
             .expect("compression process");
