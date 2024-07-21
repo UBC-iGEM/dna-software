@@ -4,6 +4,7 @@
 #![feature(iter_map_windows)]
 #![feature(iter_array_chunks)]
 
+use primer::{Base, MeltingTemperature, Primer, PrimerInfo};
 #[cfg(test)]
 extern crate quickcheck;
 #[cfg(test)]
@@ -14,7 +15,6 @@ use std::fs;
 
 use bitvec::{order::Msb0, prelude::BitVec};
 use encoder::{Encoder, QuaternaryEncoder, RotationEncoder};
-use primer::{Base, MeltingTemperature, Primer};
 
 mod chaosdna;
 mod compressor;
@@ -29,7 +29,7 @@ fn generate_primers(
     len: usize,
     melting_temperature: MeltingTemperature,
     len_g: usize,
-) -> Vec<Primer> {
+) -> Vec<PrimerInfo> {
     Primer::generate(len, melting_temperature, len_g)
 }
 

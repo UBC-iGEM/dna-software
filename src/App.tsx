@@ -6,6 +6,7 @@ import NavBar from "./components/NavBar";
 import Decode from "./pages/decode";
 import PrimerGeneration from "./pages/primer_gen";
 
+
 function App() {
   return (
     <Router>

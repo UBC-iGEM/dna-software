@@ -3,43 +3,51 @@ import { invoke } from "@tauri-apps/api/tauri";
 import "./../App.css";
 import { FormInput } from "../components/FormStyle";
 
+interface PrimerInfo {
+  primer: string[];
+  melting_temp: number;
+  gc_content: number;
+  has_hairpin: boolean;
+}
+
+
 function PrimerGeneration() {
-  const lengths = [5, 15, 18, 20, 24];
+ const lengths = [5, 15, 18, 20, 24];
   const meltingTempConstraints = ["Above", "Below"];
 
   const [length, setLength] = useState(lengths[0]);
   const [meltingTemp, setMeltingTemperaure] = useState(46);
   const [meltingTempConstraint, setMeltingTempConstraint] = useState(
-    meltingTempConstraints[0],
+    meltingTempConstraints[0]
   );
-  const [primers, setPrimers] = useState([] as string[][]);
+  const [primers, setPrimers] = useState([] as PrimerInfo[]);
 
-  async function generate_primers() {
+  async function get_primer_gen_info() {
     const meltingTemperature = {
       temperature: meltingTemp,
       constraint: meltingTempConstraint,
     };
 
-    const primers: string[][] = await invoke("generate_primers", {
+    const primers: PrimerInfo[] = await invoke("generate_primers", {
       len: length,
       meltingTemperature,
-      lenG: 4,
+      lenG: 3,
     });
-
     setPrimers(primers);
   }
 
   return (
     <div>
-      <h1>Primer Generation</h1>
+
+      <h2>Primer Generation</h2>
       <form
         className="row"
         onSubmit={(e) => {
           e.preventDefault();
-          generate_primers();
+          get_primer_gen_info();
         }}
       >
-        <FormInput className="col">
+       <FormInput className="col">
           <label htmlFor="lengths">Temperature</label>
           <input
             id="meltingTemperature"
@@ -79,11 +87,26 @@ function PrimerGeneration() {
           </select>
         </FormInput>
 
-        <button type="submit">Generate</button>
+        <button type="submit">Submit</button>
       </form>
-      {primers.map((p) => (
-        <p>{p.join("")}</p>
-      ))}
+      <table>
+        <tr>
+          <th>Primer</th>
+          <th>Melting Temperature</th>
+          <th>GC Content</th>
+          <th>Hairpin</th>
+        </tr>
+        {primers.map((p) => {
+          return (
+            <tr>
+              <td>{p.primer.join("")}</td>
+              <td>{p.melting_temp}</td>
+              <td>{p.gc_content}</td>
+              <td>{p.has_hairpin.toString()}</td>
+            </tr>
+          );
+        })}
+      </table>
     </div>
   );
 }
