@@ -23,7 +23,7 @@ pub struct MeltingTemperature {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-enum Base {
+pub enum Base {
     A,
     T,
     G,
