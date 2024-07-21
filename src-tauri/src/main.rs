@@ -19,7 +19,6 @@ use encoder::{Encoder, QuaternaryEncoder, RotationEncoder};
 mod chaosdna;
 mod compressor;
 mod decoder;
-mod dnaerror;
 mod encoder;
 mod primer;
 
