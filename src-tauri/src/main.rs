@@ -20,6 +20,7 @@ mod chaosdna;
 mod compressor;
 mod decoder;
 mod encoder;
+mod gc;
 mod primer;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
