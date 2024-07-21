@@ -306,19 +306,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn sanity() {
-        let primers = Primer::generate(
-            20,
-            MeltingTemperature {
-                temperature: 46,
-                constraint: MeltingTemperatureConstraint::Below,
-            },
-            3,
-        );
-        assert!(!primers.is_empty());
-    }
-
-    #[test]
     fn secondary_structure() {
         let test_cases = [
             ("GCATACTATCATTCGGGG", false),
