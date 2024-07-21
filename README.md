@@ -1,6 +1,8 @@
 # Tauri + React + Typescript
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+`pnpm i`
+`pnpm tauri dev`
+
 
 ## Recommended IDE Setup
 
@@ -8,3 +10,4 @@ This template should help get you started developing with Tauri, React and Types
 
 ## Guidelines
 - [Commit Messages](https://www.conventionalcommits.org/en/v1.0.0/)
+
