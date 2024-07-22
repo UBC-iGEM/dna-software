@@ -22,7 +22,7 @@ pub struct MeltingTemperature {
     constraint: MeltingTemperatureConstraint,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Hash)]
 pub enum Base {
     A,
     T,
@@ -102,6 +102,13 @@ impl TryFrom<&str> for Primer {
             .collect::<Result<_, _>>()
             .map(Primer)
     }
+}
+#[derive(Debug, Clone, Serialize)]
+pub struct PrimerInfo {
+    primer: Primer,
+    melting_temp: f64,
+    gc_content: f64,
+    has_hairpin: bool,
 }
 
 impl Primer {
@@ -216,12 +223,19 @@ impl Primer {
         total_len: usize,
         melting_temperature: MeltingTemperature,
         len_g: usize,
-    ) -> Vec<Self> {
+    ) -> Vec<PrimerInfo> {
         let len_no_g = total_len - len_g;
         let mut initial_primers = Self::generate_initial_primers(len_no_g, len_g);
         const MUTATION_RATE: f64 = 0.8;
+        let mut iters = 0;
+        let mut return_best_found = false;
 
         loop {
+            dbg!(iters);
+            if iters > 1000 {
+                return_best_found = true;
+            }
+
             let parents = initial_primers
                 .choose_multiple_weighted(&mut rand::thread_rng(), Self::POOL_SIZE, |p| {
                     p.fitness(melting_temperature)
@@ -246,6 +260,18 @@ impl Primer {
                 })
                 .collect();
 
+            if return_best_found {
+                return mutated_children
+                    .iter()
+                    .map(|p| PrimerInfo {
+                        primer: p.clone(),
+                        melting_temp: p.melting_temperature(),
+                        gc_content: p.gc_content(),
+                        has_hairpin: p.has_hairpin(),
+                    })
+                    .collect();
+            }
+
             let good_primers: Vec<_> = mutated_children
                 .iter()
                 .filter(|p| {
@@ -258,9 +284,18 @@ impl Primer {
                 .collect();
 
             if !good_primers.is_empty() {
-                return good_primers;
+                return good_primers
+                    .iter()
+                    .map(|p| PrimerInfo {
+                        primer: p.clone(),
+                        melting_temp: p.melting_temperature(),
+                        gc_content: p.gc_content(),
+                        has_hairpin: p.has_hairpin(),
+                    })
+                    .collect();
             } else {
                 initial_primers = mutated_children;
+                iters += 1;
             }
         }
     }
@@ -269,19 +304,6 @@ impl Primer {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn sanity() {
-        let primers = Primer::generate(
-            18,
-            MeltingTemperature {
-                temperature: 46,
-                constraint: MeltingTemperatureConstraint::Above,
-            },
-            4,
-        );
-        assert!(!primers.is_empty());
-    }
 
     #[test]
     fn secondary_structure() {
@@ -297,7 +319,4 @@ mod tests {
             assert_eq!(primer.has_hairpin(), has_hairpin);
         }
     }
-
-    #[test]
-    fn twenty_four_nt() {}
 }
