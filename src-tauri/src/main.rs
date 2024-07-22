@@ -3,7 +3,6 @@
 #![feature(array_windows)]
 #![feature(iter_map_windows)]
 #![feature(iter_array_chunks)]
-#![feature(diagnostic_namespace)]
 
 use primer::{Base, MeltingTemperature, Primer, PrimerInfo};
 #[cfg(test)]
