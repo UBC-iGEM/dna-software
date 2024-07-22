@@ -23,6 +23,6 @@
     "@vitejs/plugin-react": "^4.2.1",
     "typescript": "^5.0.2",
     "vite": "^5.0.0"
-  }
+  },
     "packageManager": "^pnpm@9.5.0"
 }
