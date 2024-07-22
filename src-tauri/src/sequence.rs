@@ -1,6 +1,6 @@
-use std::{fs, io, path::Path};
+use std::{fs, io, path::PathBuf};
 
-use bitvec::prelude::BitVec;
+use bitvec::prelude::*;
 
 use crate::{
     compressor::Compressor,
@@ -9,14 +9,14 @@ use crate::{
 };
 
 fn encode(
-    path: impl AsRef<Path>,
+    path: PathBuf,
     primer: Primer,
     compressor: impl Compressor,
     encoder: impl Encoder,
 ) -> io::Result<Vec<Base>> {
-    let file = fs::read(path)?;
-    let compressed = compressor.compress(file);
-    let bit_sequence = BitVec::from_vec(compressed);
+    let compressed = compressor.compress(path)?;
+    let compressed_bytes = fs::read(compressed)?;
+    let bit_sequence = BitVec::<u8, Msb0>::from_slice(&compressed_bytes);
     Ok(encoder.encode(bit_sequence))
 }
 

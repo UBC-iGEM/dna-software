@@ -600,6 +600,7 @@ version = "0.0.0"
 dependencies = [
  "bitvec",
  "itertools",
+ "lz4",
  "rand 0.8.5",
  "serde",
  "serde_json",
@@ -1493,6 +1494,26 @@ dependencies = [
  "serde_json",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "lz4"
+version = "1.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6eab492fe7f8651add23237ea56dbf11b3c4ff762ab83d40a47f11433421f91"
+dependencies = [
+ "libc",
+ "lz4-sys",
+]
+
+[[package]]
+name = "lz4-sys"
+version = "1.9.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9764018d143cc854c9f17f0b907de70f14393b1f502da6375dce70f00514eb3"
+dependencies = [
+ "cc",
+ "libc",
 ]
 
 [[package]]
