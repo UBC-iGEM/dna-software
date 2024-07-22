@@ -1,5 +1,7 @@
 use bitvec::{order::Msb0, slice::BitSlice, vec::BitVec};
-use g2p;
+
+g2p::g2p!(GF16, 4);
+
 struct GF {}
 impl GF {}
 
@@ -20,9 +22,11 @@ impl GcEncoder {
 
         assert_eq!(bin_seq.len(), num_symbols * block_length);
 
-        let q_ary: Vec<&BitSlice<u8, Msb0>> = bin_seq.chunks(block_length).collect();
+        let q = (2 as u32).pow((k_next_power_of_two as f64).log2() as u32);
 
-        q_ary
+        assert_eq!(q as usize, k_next_power_of_two);
+
+        bin_seq.chunks(block_length).collect()
     }
 
     fn map_block_to_finite(blocks: Vec<&BitSlice<u8, Msb0>>) {
