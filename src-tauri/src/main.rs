@@ -3,6 +3,7 @@
 #![feature(array_windows)]
 #![feature(iter_map_windows)]
 #![feature(iter_array_chunks)]
+#![feature(hash_raw_entry)]
 
 use primer::{Base, MeltingTemperature, Primer, PrimerInfo};
 #[cfg(test)]
@@ -20,6 +21,7 @@ mod chaosdna;
 mod compressor;
 mod decoder;
 mod encoder;
+mod huffman;
 mod primer;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
