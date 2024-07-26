@@ -11,11 +11,11 @@ extern crate quickcheck;
 #[macro_use(quickcheck)]
 extern crate quickcheck_macros;
 
-use std::fs;
+use std::{fs, path::PathBuf};
 
 use bitvec::{order::Msb0, prelude::BitVec};
+use compressor::{Compressor, VoidCompressor};
 use encoder::{Encoder, QuaternaryEncoder, RotationEncoder};
-
 mod chaosdna;
 mod compressor;
 mod decoder;
@@ -33,9 +33,16 @@ fn generate_primers(
 }
 
 #[tauri::command]
-fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Base>, String> {
-    let bytes = fs::read(file_path).map_err(|err| err.to_string())?;
-    let bits = BitVec::<_, Msb0>::from_vec(bytes);
+fn encode_sequence(
+    encoder_type: &str,
+    file_path: PathBuf,
+) -> Result<Vec<Base>, String> {
+    let compressor = VoidCompressor{}; 
+    let compressed = compressor
+        .compress(file_path)
+        .map_err(|err| err.to_string())?;
+    let bytes = fs::read(compressed).map_err(|err| err.to_string())?;
+    let bits = BitVec::<_, Msb0>::from_slice(&bytes);
     let encoder: Box<dyn Encoder> = match encoder_type {
         "quaternary" => Box::new(QuaternaryEncoder {}),
         "rotation" => Box::new(RotationEncoder {}),
