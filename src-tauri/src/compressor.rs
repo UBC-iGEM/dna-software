@@ -1,6 +1,6 @@
 use lz4::{Decoder, EncoderBuilder};
 use std::{
-    fs::File,
+    fs::{self, create_dir_all, File},
     io::{self, BufRead, BufReader, Result, Write},
     path::{Path, PathBuf},
     process::{Command, Stdio},
@@ -26,6 +26,7 @@ impl Compressor for VoidCompressor {
         //      Some("txt") | Some("org") | Some("md") => self.compress_llm(inpath),
         //      _ => self.compress_lz4(inpath),
         //  }
+        dbg!("here");
         self.compress_lz4(inpath)
     }
 
@@ -83,21 +84,25 @@ impl Compressor for VoidCompressor {
     }
 
     fn compress_lz4(&self, inpath: PathBuf) -> Result<PathBuf> {
+        dbg!("here");
         let mut input_file = File::open(inpath.as_path())?;
+        dbg!("here");
         let filename = inpath.file_stem().unwrap();
-        let outpath = Path::new("/path/to/data/dir")
-            .join(filename)
-            .with_extension("lz4");
+        dbg!("here");
+        let out_dir = "compressed_lz4/";
+        fs::create_dir_all(out_dir);
+        let outpath = Path::new(out_dir).join(filename).with_extension("lz4");
+        dbg!("here");
         let output_file = File::create(outpath.as_path())?;
-
         println!("Compressing: {} -> {}", inpath.display(), outpath.display());
-
+        dbg!("here");
         let mut encoder = EncoderBuilder::new().level(12).build(output_file)?;
         io::copy(&mut input_file, &mut encoder)?;
+        dbg!("here");
         let (mut writer, result) = encoder.finish();
         result?;
         writer.flush()?;
-
+        dbg!("here");
         Ok(outpath)
     }
 
