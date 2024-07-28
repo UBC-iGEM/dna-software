@@ -20,6 +20,7 @@ bitvec = "1.0.1"
 lz4 = "1.23.1"
 thiserror = "1.0.61"
 g2p = "1.0.1"
+tempfile = "3.10.1"
 
 [dev-dependencies]
 quickcheck = "1.0.3"

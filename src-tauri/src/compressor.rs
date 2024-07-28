@@ -139,3 +139,39 @@ impl Compressor for VoidCompressor {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use quickcheck::{quickcheck, TestResult};
+    use std::{
+        fs::{self, File},
+        io::Read,
+    };
+    use tempfile::tempdir;
+
+    #[quickcheck]
+    fn test_compress_decompress_lz4(data: Vec<u8>) -> TestResult {
+        let compressor = VoidCompressor {};
+        let temp_dir = tempdir().unwrap();
+        let input_path = temp_dir.path().join("input.txt");
+        let decompressed_path = temp_dir.path().join("output.txt");
+        fs::write(&input_path, &data).unwrap();
+
+        // Compress
+        let compressed_path = compressor.compress_lz4(input_path.clone()).unwrap();
+
+        // Decompress
+        compressor
+            .decompress_lz4(compressed_path, decompressed_path.clone())
+            .unwrap();
+
+        // Read decompressed data
+        let mut decompressed_data = Vec::new();
+        let mut file = File::open(decompressed_path).unwrap();
+        file.read_to_end(&mut decompressed_data).unwrap();
+
+        // Assert that the decompressed data matches the original data
+        TestResult::from_bool(data == decompressed_data)
+    }
+}
