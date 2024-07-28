@@ -16,6 +16,7 @@ use std::fs;
 use bitvec::{order::Msb0, prelude::BitVec};
 use encoder::{Encoder, QuaternaryEncoder, RotationEncoder};
 
+mod blocker;
 mod chaosdna;
 mod compressor;
 mod decoder;
