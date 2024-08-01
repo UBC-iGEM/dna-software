@@ -131,16 +131,6 @@ impl Compressor for VoidCompressor {
         Ok(outpath)
     }
 
-    fn decompress(&self, inpath: PathBuf, outpath: PathBuf) -> Result<()> {
-        //  Currently aliases to decompress_lz4. May use pattern matching in future
-        //
-        //  match inpath.extension().and_then(|os_str| os_str.to_str()) {
-        //      Some("bin") => self.decompress_llm(inpath, outpath),
-        //      _ => self.decompress_lz4(inpath, outpath),
-        //  }
-        self.decompress_lz4(inpath, outpath)
-    }
-
     fn decompress_llm(&self, inpath: PathBuf, outpath: PathBuf) -> Result<()> {
         let mut process = Command::new("/path/to/ts_zip")
             .arg("-m")
