@@ -15,13 +15,17 @@ function Encode() {
       filters: [{ name: "Text", extensions: ["txt"] }],
       defaultPath: await appDir(),
     });
+
+    console.log("here1");
     if (filePath === null) {
       return;
     }
+    console.log("here2");
     const encoded_sequence: string[] = await invoke("encode_sequence", {
       encoderType: encoderType,
       filePath: filePath,
     });
+    console.log("here3");
 
     setEncodedSequence(encoded_sequence);
   }
