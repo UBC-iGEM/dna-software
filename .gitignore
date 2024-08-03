@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Compression
+src-tauri/rustc-ice*
+src-tauri/compresssed_lz4*
