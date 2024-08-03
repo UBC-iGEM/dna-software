@@ -25,3 +25,4 @@ dist-ssr
 
 # Compression
 src-tauri/rustc-ice*
+src-tauri/compresssed_lz4*
