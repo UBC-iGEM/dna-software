@@ -17,7 +17,7 @@ use std::{fs, path::PathBuf};
 use bitvec::{order::Msb0, prelude::BitVec};
 use compressor::{Compressor, VoidCompressor};
 use decoder::{Decoder, QuaternaryDecoder, RotationDecoder};
-use encoder::{Encoder, QuaternaryEncoder, RotationEncoder};
+use encoder::{ChurchEncoder, Encoder, QuaternaryEncoder, RotationEncoder};
 mod chaosdna;
 mod compressor;
 mod decoder;
@@ -47,6 +47,7 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Base>, Str
     let encoder: Box<dyn Encoder> = match encoder_type {
         "quaternary" => Box::new(QuaternaryEncoder {}),
         "rotation" => Box::new(RotationEncoder {}),
+        "church" => Box::new(ChurchEncoder {}),
         _ => return Err("Selected encoder does not exist.".to_string()),
     };
 

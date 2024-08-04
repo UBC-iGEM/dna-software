@@ -9,6 +9,18 @@ pub trait Decoder {
     fn decode(&self, bases: &Vec<Base>) -> BitVec<u8, Msb0>;
 }
 
+pub struct ChurchDecoder {}
+impl Decoder for ChurchDecoder {
+    fn decode(&self, bases: &Vec<Base>) -> BitVec<u8, Msb0> {
+        BitVec::from_iter(bases.iter().map(|base| match base {
+            Base::A => false,
+            Base::T => false,
+            Base::G => true,
+            Base::C => true,
+        }))
+    }
+}
+
 pub struct QuaternaryDecoder {}
 impl Decoder for QuaternaryDecoder {
     fn decode(&self, bases: &Vec<Base>) -> BitVec<u8, Msb0> {

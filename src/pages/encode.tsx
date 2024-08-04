@@ -5,7 +5,7 @@ import { appDir } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/api/dialog";
 
 function Encode() {
-  const encoderTypes = ["rotation", "quaternary"];
+  const encoderTypes = ["rotation", "quaternary", "church"];
   const [encodedSequence, setEncodedSequence] = useState([] as string[]);
   const [encoderType, setEncoderType] = useState(encoderTypes[0]);
 

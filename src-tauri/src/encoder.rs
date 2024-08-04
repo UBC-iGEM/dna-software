@@ -8,6 +8,42 @@ pub trait Encoder {
     fn encode(&self, input: &BitVec<u8, Msb0>) -> Vec<Base>;
 }
 
+pub struct ChurchEncoder {}
+impl Encoder for ChurchEncoder {
+    fn encode(&self, input: &BitVec<u8, Msb0>) -> Vec<Base> {
+        let mut prev_base = Base::T;
+        input
+            .iter()
+            .by_vals()
+            .map(|bit| {
+                prev_base = alternate_base(prev_base, bit);
+                prev_base
+            })
+            .collect()
+    }
+}
+
+fn alternate_base(prev_base: Base, bit: bool) -> Base {
+    let church_mapping = vec![vec![Base::A, Base::T], vec![Base::C, Base::G]];
+
+    match bit {
+        true => {
+            if prev_base.eq(&church_mapping[1][0]) {
+                church_mapping[1][1]
+            } else {
+                church_mapping[1][0]
+            }
+        }
+        false => {
+            if prev_base.eq(&church_mapping[0][0]) {
+                church_mapping[0][1]
+            } else {
+                church_mapping[0][0]
+            }
+        }
+    }
+}
+
 pub struct QuaternaryEncoder {}
 impl Encoder for QuaternaryEncoder {
     fn encode(&self, input: &BitVec<u8, Msb0>) -> Vec<Base> {
@@ -68,14 +104,21 @@ impl Encoder for HEDGESEncoder {
 
 #[cfg(test)]
 mod tests {
-    use crate::decoder::{Decoder, QuaternaryDecoder, RotationDecoder};
-    use crate::encoder::{Encoder, QuaternaryEncoder, RotationEncoder};
+    use crate::decoder::{ChurchDecoder, Decoder, QuaternaryDecoder, RotationDecoder};
+    use crate::encoder::{ChurchEncoder, Encoder, QuaternaryEncoder, RotationEncoder};
     use bitvec::prelude::BitVec;
 
     #[quickcheck]
     fn rotation_encode_decode(bytes: Vec<u8>) -> bool {
         let encoder = RotationEncoder {};
         let decoder = RotationDecoder {};
+        let bits = BitVec::from_vec(bytes);
+        bits == decoder.decode(&encoder.encode(&bits))
+    }
+    #[quickcheck]
+    fn church_encode_decode(bytes: Vec<u8>) -> bool {
+        let encoder = ChurchEncoder {};
+        let decoder = ChurchDecoder {};
         let bits = BitVec::from_vec(bytes);
         bits == decoder.decode(&encoder.encode(&bits))
     }
