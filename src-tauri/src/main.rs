@@ -23,6 +23,7 @@ mod compressor;
 mod decoder;
 mod encoder;
 mod fasta;
+mod metadata;
 mod primer;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
