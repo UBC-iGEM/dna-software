@@ -5,6 +5,7 @@
 #![feature(iter_array_chunks)]
 
 use fasta::{FastaBase, FastaParser, Parser};
+use metadata::MetaData;
 use primer::{Base, MeltingTemperature, Primer, PrimerInfo};
 #[cfg(test)]
 extern crate quickcheck;
@@ -45,11 +46,20 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Base>, Str
         .map_err(|err| err.to_string())?;
     let bytes = fs::read(compressed).map_err(|err| err.to_string())?;
     let bits = BitVec::<_, Msb0>::from_slice(&bytes);
+    let bit_blocks = 0;
     let encoder: Box<dyn Encoder> = match encoder_type {
         "quaternary" => Box::new(QuaternaryEncoder {}),
         "rotation" => Box::new(RotationEncoder {}),
         "church" => Box::new(ChurchEncoder {}),
         _ => return Err("Selected encoder does not exist.".to_string()),
+    };
+
+    let metadata = MetaData {
+        file_path: file_path,
+        encoder_type: encoder_type,
+        num_bit_sequences: todo!(),
+        bit_sequence_length: todo!(),
+        compression_type: todo!(),
     };
 
     Ok(encoder.encode(&bits).into())
