@@ -2,28 +2,46 @@ use std::{cmp, f64::INFINITY};
 
 use crate::primer::Base;
 
-enum DataType {
+#[derive(Clone)]
+pub enum DataType {
     Base(Base),
+    Bit(bool),
 }
 
 pub trait Blocker {
-    fn block<T: Clone>(
+    fn block(
         &self,
-        sequence: Vec<T>,
+        sequence: Vec<DataType>,
         per_segment: usize,
         per_overlap: usize,
-    ) -> Vec<Vec<T>>;
-    fn deblock<T: Clone>(&self, blocks: Vec<Vec<T>>) -> Vec<T>;
+    ) -> Vec<Vec<DataType>>;
+    fn deblock(&self, blocks: Vec<Vec<DataType>>) -> Vec<DataType>;
+}
+
+pub struct BitBlocker {}
+impl Blocker for BitBlocker {
+    fn block(
+        &self,
+        sequence: Vec<DataType>,
+        per_segment: usize,
+        per_overlap: usize,
+    ) -> Vec<Vec<DataType>> {
+        todo!()
+    }
+
+    fn deblock(&self, blocks: Vec<Vec<DataType>>) -> Vec<DataType> {
+        todo!()
+    }
 }
 
 pub struct DNABlocker {}
 impl Blocker for DNABlocker {
-    fn block<T: Clone>(
+    fn block(
         &self,
-        sequence: Vec<T>,
+        sequence: Vec<DataType>,
         per_segment: usize,
         per_overlap: usize,
-    ) -> Vec<Vec<T>> {
+    ) -> Vec<Vec<DataType>> {
         let mut iter = sequence.windows(per_segment);
         let mut dna_sequences = Vec::new();
         while let Some(next_segment) = iter.next() {
@@ -32,7 +50,7 @@ impl Blocker for DNABlocker {
         dna_sequences
     }
 
-    fn deblock<T: Clone>(&self, dna_blocks: Vec<Vec<T>>) -> Vec<T> {
+    fn deblock(&self, dna_blocks: Vec<Vec<DataType>>) -> Vec<DataType> {
         // 1. find overlaps with dynamic programming
         for first_dna_seg in &dna_blocks {
             for second_dna_seg in &dna_blocks {

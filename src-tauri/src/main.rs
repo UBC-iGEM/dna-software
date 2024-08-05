@@ -64,6 +64,9 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Base>, Str
         compression_type: "lz4",
     };
 
+    let out_dir = "metadata";
+    fs::create_dir_all(out_dir);
+
     Ok(encoder.encode(&bits).into())
 }
 
