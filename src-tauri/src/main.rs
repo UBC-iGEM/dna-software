@@ -17,8 +17,10 @@ use std::{fs, path::PathBuf};
 
 use bitvec::{order::Msb0, prelude::BitVec};
 use compressor::{Compressor, VoidCompressor};
-use decoder::{Decoder, QuaternaryDecoder, RotationDecoder};
+use decoder::{ChurchDecoder, Decoder, QuaternaryDecoder, RotationDecoder};
 use encoder::{ChurchEncoder, Encoder, QuaternaryEncoder, RotationEncoder};
+
+mod blocker;
 mod chaosdna;
 mod compressor;
 mod decoder;
@@ -57,9 +59,9 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Base>, Str
     let metadata = MetaData {
         file_path: file_path,
         encoder_type: encoder_type,
-        num_bit_sequences: todo!(),
-        bit_sequence_length: todo!(),
-        compression_type: todo!(),
+        num_bit_sequences: 0,
+        bit_sequence_length: 0,
+        compression_type: "lz4",
     };
 
     Ok(encoder.encode(&bits).into())
