@@ -2,6 +2,7 @@ use crate::{compressor::Compressor, encoder::Encoder};
 
 // TODO: don't know if lifetimes are neccesarry
 
+#[derive(Clone, Copy)]
 pub struct MetaData<'a> {
     pub file_path: &'a str,
     pub encoder_type: &'a str,

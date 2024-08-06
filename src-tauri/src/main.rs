@@ -4,9 +4,11 @@
 #![feature(iter_map_windows)]
 #![feature(iter_array_chunks)]
 
+use blocker::BitBlocker;
 use fasta::{FastaBase, FastaParser, Parser};
 use metadata::MetaData;
 use primer::{Base, MeltingTemperature, Primer, PrimerInfo};
+use scaffolder::Scaffolder;
 #[cfg(test)]
 extern crate quickcheck;
 #[cfg(test)]
@@ -28,6 +30,7 @@ mod encoder;
 mod fasta;
 mod metadata;
 mod primer;
+mod scaffolder;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -40,23 +43,8 @@ fn generate_primers(
 }
 
 #[tauri::command]
-fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Base>, String> {
-    let path = PathBuf::from(file_path);
-    let compressor = VoidCompressor {};
-    let compressed = compressor
-        .compress(path.clone())
-        .map_err(|err| err.to_string())?;
-    let bytes = fs::read(compressed).map_err(|err| err.to_string())?;
-    let bits = BitVec::<_, Msb0>::from_slice(&bytes);
-    let bit_blocks = 0;
-    let encoder: Box<dyn Encoder> = match encoder_type {
-        "quaternary" => Box::new(QuaternaryEncoder {}),
-        "rotation" => Box::new(RotationEncoder {}),
-        "church" => Box::new(ChurchEncoder {}),
-        _ => return Err("Selected encoder does not exist.".to_string()),
-    };
-
-    let metadata = MetaData {
+fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>, String> {
+    let mut metadata = MetaData {
         file_path: file_path,
         encoder_type: encoder_type,
         num_bit_sequences: 0,
@@ -64,10 +52,37 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Base>, Str
         compression_type: "lz4",
     };
 
-    let out_dir = "metadata";
-    fs::create_dir_all(out_dir);
+    let path = PathBuf::from(file_path);
 
-    Ok(encoder.encode(&bits).into())
+    let compressor = VoidCompressor {};
+    let compressed = compressor
+        .compress(path.clone())
+        .map_err(|err| err.to_string())?;
+
+    let bytes = fs::read(compressed).map_err(|err| err.to_string())?;
+    let bits = BitVec::<_, Msb0>::from_slice(&bytes);
+
+    let blocker = BitBlocker {};
+    let bit_blocks = blocker.block(metadata, bits, 20, 19);
+    let encoder: Box<dyn Encoder> = match encoder_type {
+        "quaternary" => Box::new(QuaternaryEncoder {}),
+        "rotation" => Box::new(RotationEncoder {}),
+        "church" => Box::new(ChurchEncoder {}),
+        _ => return Err("Selected encoder does not exist.".to_string()),
+    };
+
+    let encoded_dna_blocks = bit_blocks
+        .iter()
+        .map(|bit_block| encoder.encode(bit_block))
+        .collect();
+
+    let scaffolder = Scaffolder {};
+    let scaffolded_dna_blocks = scaffolder.add_scaffold(metadata, encoded_dna_blocks);
+
+    let out_dir = "metadata";
+    fs::create_dir_all(out_dir).unwrap();
+
+    Ok(scaffolded_dna_blocks)
 }
 
 #[tauri::command]
