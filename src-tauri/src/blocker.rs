@@ -11,6 +11,17 @@ impl BitBlocker {
         per_segment: usize,
         per_overlap: usize,
     ) -> Vec<BitVec<u8, Msb0>> {
-        todo!()
+        let mut result = Vec::new();
+        let mut index = 0;
+        while index <= sequence.len() {
+            result.push(
+                sequence
+                    .clone()
+                    .slice(index..index + per_segment)
+                    .to_owned(),
+            );
+            index += per_segment - per_overlap;
+        }
+        result
     }
 }
