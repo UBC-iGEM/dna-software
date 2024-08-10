@@ -1,6 +1,12 @@
-use crate::{compressor::Compressor, encoder::Encoder};
+use std::collections::HashMap;
+
+use crate::{compressor::Compressor, encoder::Encoder, primer::Base};
 
 // TODO: don't know if lifetimes are neccesarry
+
+pub struct Scaffold {
+    pub scaffolded_bases: Vec<HashMap<isize, Base>>,
+}
 
 #[derive(Clone, Copy)]
 pub struct MetaData<'a> {
@@ -9,6 +15,7 @@ pub struct MetaData<'a> {
     pub compression_type: &'a str,
     pub num_bit_sequences: usize,
     pub bit_sequence_length: usize,
+    pub scaffold: &'a Scaffold,
 }
 
 impl MetaData<'_> {

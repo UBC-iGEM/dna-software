@@ -44,14 +44,6 @@ fn generate_primers(
 
 #[tauri::command]
 fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>, String> {
-    let mut metadata = MetaData {
-        file_path: file_path,
-        encoder_type: encoder_type,
-        num_bit_sequences: 0,
-        bit_sequence_length: 0,
-        compression_type: "lz4",
-    };
-
     let path = PathBuf::from(file_path);
 
     let compressor = VoidCompressor {};
@@ -63,7 +55,7 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>
     let bits = BitVec::<_, Msb0>::from_slice(&bytes);
 
     let blocker = BitBlocker {};
-    let bit_blocks = blocker.block(metadata, bits, 20, 19);
+    let (bit_blocks, blocking_metadata) = blocker.block(bits, 20, 19);
     let encoder: Box<dyn Encoder> = match encoder_type {
         "quaternary" => Box::new(QuaternaryEncoder {}),
         "rotation" => Box::new(RotationEncoder {}),
@@ -77,7 +69,8 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>
         .collect();
 
     let scaffolder = Scaffolder {};
-    let scaffolded_dna_blocks = scaffolder.add_scaffold(metadata, encoded_dna_blocks);
+    let (scaffolded_dna_blocks, scaffold_metadata) =
+        scaffolder.add_scaffold(encoded_dna_blocks, 0.20 as f32);
 
     let out_dir = "metadata";
     fs::create_dir_all(out_dir).unwrap();
