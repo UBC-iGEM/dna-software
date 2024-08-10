@@ -9,6 +9,7 @@ use fasta::{FastaBase, FastaParser, Parser};
 use metadata::{MetaData, Scaffold};
 use primer::{Base, MeltingTemperature, Primer, PrimerInfo};
 use scaffolder::Scaffolder;
+use serde_json::to_string;
 #[cfg(test)]
 extern crate quickcheck;
 #[cfg(test)]
@@ -80,10 +81,12 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>
         file_path,
         encoder_type,
         compression_type: "lz4",
-        num_bit_sequences: 20,   // TODO: blocker
-        bit_sequence_length: 19, // TODO: blocker
+        num_bit_sequences: bit_blocks.len(), // TODO: blocker
+        bit_sequence_length: 19,             // TODO: blocker
         scaffold: &scaffold,
     };
+
+    let metadata_json = serde_json::to_string(&metadata);
 
     fs::create_dir_all(out_dir).unwrap();
 
