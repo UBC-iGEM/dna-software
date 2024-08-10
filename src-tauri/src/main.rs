@@ -6,7 +6,7 @@
 
 use blocker::BitBlocker;
 use fasta::{FastaBase, FastaParser, Parser};
-use metadata::MetaData;
+use metadata::{MetaData, Scaffold};
 use primer::{Base, MeltingTemperature, Primer, PrimerInfo};
 use scaffolder::Scaffolder;
 #[cfg(test)]
@@ -73,6 +73,18 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>
         scaffolder.add_scaffold(encoded_dna_blocks, 0.20 as f32);
 
     let out_dir = "metadata";
+    let scaffold = Scaffold {
+        scaffolded_bases: scaffold_metadata,
+    };
+    let metadata = MetaData {
+        file_path,
+        encoder_type,
+        compression_type: "lz4",
+        num_bit_sequences: 20,   // TODO: blocker
+        bit_sequence_length: 19, // TODO: blocker
+        scaffold: &scaffold,
+    };
+
     fs::create_dir_all(out_dir).unwrap();
 
     Ok(scaffolded_dna_blocks)
