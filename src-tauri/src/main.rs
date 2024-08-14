@@ -63,7 +63,8 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>
     let bits = BitVec::<_, Msb0>::from_slice(&bytes);
 
     let blocker = BitBlocker {};
-    let bit_blocks = blocker.block(metadata, bits, 20, 19);
+    let bit_blocks = blocker.block(//metadata,
+        bits, 20, 19);
     let encoder: Box<dyn Encoder> = match encoder_type {
         "quaternary" => Box::new(QuaternaryEncoder {}),
         "rotation" => Box::new(RotationEncoder {}),

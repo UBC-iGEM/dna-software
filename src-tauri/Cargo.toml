@@ -22,6 +22,7 @@ thiserror = "1.0.61"
 g2p = "1.0.1"
 tempfile = "3.10.1"
 bio = "2.0.1"
+petgraph = "0.6.5"
 
 [dev-dependencies]
 quickcheck = "1.0.3"
