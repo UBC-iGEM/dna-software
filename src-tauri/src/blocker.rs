@@ -127,18 +127,25 @@ mod tests {
 
     #[test]
     fn test_blocker() {
+	// Generate sequence of random length between 40-150 bits
         let mut rng = thread_rng();
         let bitvec_len = rng.gen_range(40..=150);
         let sequence = generate_random_bitvec(&mut rng, bitvec_len);
 
+	// Run the block function on the generated sequence
         let blocker = BitBlocker {};
-        let test_sequence = blocker.block(sequence.clone(), 20, 14);
+        let test_sequence = blocker.block(sequence.clone(), 20, 15);
+
+	// Shuffle the BitVecs in the output
         let mut shuffled_sequence = test_sequence.to_owned();
         shuffled_sequence.shuffle(&mut thread_rng());
-        let output_sequence = blocker.rebuild(shuffled_sequence, 14);
+
+	// Reconstruct the original and check that sequence and output_sequence are identical.
+        let output_sequence = blocker.rebuild(shuffled_sequence, 15);
         assert_eq!(sequence, output_sequence);
     }
 
+    // Create a BitVec with 50% RNG (0 or 1)
     fn generate_random_bitvec(rng: &mut impl Rng, len: usize) -> BitVec<u8, Msb0> {
         let mut bits: BitVec<u8, Msb0> = BitVec::with_capacity(len);
         for _ in 0..len {
