@@ -13,6 +13,7 @@ impl BitBlocker {
         per_segment: usize,
         per_overlap: usize,
     ) -> Vec<BitVec<u8, Msb0>> {
+        println!("Initial sequence: {}", sequence);
         let mut result = Vec::new();
         let mut start = 0;
         while start < sequence.len() {
@@ -26,6 +27,10 @@ impl BitBlocker {
             if start < sequence.len() {
                 start -= per_overlap;
             }
+        }
+        println!("Blocked sequences:");
+        for (i, chunk) in result.iter().enumerate() {
+            println!("Bl{}: {}", i, chunk);
         }
         result
     }
@@ -52,6 +57,9 @@ impl BitBlocker {
         if first_index == usize::MAX {
             panic!("Error: No starting block found!");
         }
+	else {
+	    println!("First index: {}", first_index);
+	}
 
         let mut result = BitVec::<u8, Msb0>::new();
         println!("Overlaps: {:?}", overlaps);
@@ -77,6 +85,7 @@ impl BitBlocker {
 mod tests {
     use super::*;
     use bitvec::bitvec;
+    use rand::{seq::SliceRandom, thread_rng, Rng};
 
     #[test]
     fn test_rebuild() {
@@ -113,9 +122,28 @@ mod tests {
 
         let result = blocker.block(sequence, per_segment, per_overlap);
 
-        assert_eq!(result.len(), expected_result.len());
-        for i in 0..result.len() {
-            assert_eq!(result[i], expected_result[i]);
+        assert_eq!(result, expected_result);
+    }
+
+    #[test]
+    fn test_blocker() {
+        let mut rng = thread_rng();
+        let bitvec_len = rng.gen_range(40..=150);
+        let sequence = generate_random_bitvec(&mut rng, bitvec_len);
+
+        let blocker = BitBlocker {};
+        let test_sequence = blocker.block(sequence.clone(), 20, 14);
+        let mut shuffled_sequence = test_sequence.to_owned();
+        shuffled_sequence.shuffle(&mut thread_rng());
+        let output_sequence = blocker.rebuild(shuffled_sequence, 14);
+        assert_eq!(sequence, output_sequence);
+    }
+
+    fn generate_random_bitvec(rng: &mut impl Rng, len: usize) -> BitVec<u8, Msb0> {
+        let mut bits: BitVec<u8, Msb0> = BitVec::with_capacity(len);
+        for _ in 0..len {
+            bits.push(rng.gen_bool(0.5));
         }
+        bits
     }
 }
