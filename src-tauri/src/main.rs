@@ -6,7 +6,7 @@
 
 use blocker::BitBlocker;
 use fasta::{FastaBase, FastaParser, Parser};
-use metadata::MetaData;
+use metadata::{MetaData, Scaffold};
 use primer::{Base, MeltingTemperature, Primer, PrimerInfo};
 use scaffolder::Scaffolder;
 #[cfg(test)]
@@ -44,14 +44,6 @@ fn generate_primers(
 
 #[tauri::command]
 fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>, String> {
-    let mut metadata = MetaData {
-        file_path: file_path,
-        encoder_type: encoder_type,
-        num_bit_sequences: 0,
-        bit_sequence_length: 0,
-        compression_type: "lz4",
-    };
-
     let path = PathBuf::from(file_path);
 
     let compressor = VoidCompressor {};
@@ -63,8 +55,7 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>
     let bits = BitVec::<_, Msb0>::from_slice(&bytes);
 
     let blocker = BitBlocker {};
-    let bit_blocks = blocker.block(//metadata,
-        bits, 20, 19);
+    let (bit_blocks, blocking_metadata) = blocker.block(bits, 20, 19);
     let encoder: Box<dyn Encoder> = match encoder_type {
         "quaternary" => Box::new(QuaternaryEncoder {}),
         "rotation" => Box::new(RotationEncoder {}),
@@ -78,28 +69,49 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>
         .collect();
 
     let scaffolder = Scaffolder {};
-    let scaffolded_dna_blocks = scaffolder.add_scaffold(metadata, encoded_dna_blocks);
+    let (scaffolded_dna_blocks, scaffold_metadata) =
+        scaffolder.add_scaffold(encoded_dna_blocks, 0.20 as f32);
 
     let out_dir = "metadata";
+    let scaffold = Scaffold {
+        scaffolded_bases: scaffold_metadata,
+    };
+    let metadata = MetaData {
+        file_path,
+        encoder_type,
+        compression_type: "lz4",
+        num_bit_sequences: bit_blocks.len(), // TODO: blocker
+        bit_sequence_length: 19,             // TODO: blocker
+        scaffold: &scaffold,
+    };
+
     fs::create_dir_all(out_dir).unwrap();
 
     Ok(scaffolded_dna_blocks)
 }
 
 #[tauri::command]
-fn decode_sequence(file_path: &str) -> Result<String, String> {
-    let fasta_file_content = fs::read_to_string(PathBuf::from(file_path)).unwrap();
-    let fasta_bases = FastaParser::parse_into(&fasta_file_content);
-    let decoder = QuaternaryDecoder {};
-    let bases = fasta_bases
-        .into_iter()
-        .flatten()
-        .map(|base| match base {
-            FastaBase::Base(b) => Base::try_from(b).unwrap(),
-            FastaBase::NotBase(b) => Base::A, // TODO: this is just for now since the error correction will deal with the NotBase
+fn decode_sequence(file_paths: Vec<&str>) -> Result<String, String> {
+    let decoded_sequences: Vec<BitVec<u8, Msb0>> = file_paths
+        .iter()
+        .map(|file_path| {
+            let fasta_file_content = fs::read_to_string(PathBuf::from(file_path)).unwrap();
+            let fasta_bases = FastaParser::parse_into(&fasta_file_content);
+            let decoder = QuaternaryDecoder {};
+            let bases = fasta_bases
+                .into_iter()
+                .flatten()
+                .map(|base| match base {
+                    FastaBase::Base(b) => Base::try_from(b).unwrap(),
+                    FastaBase::NotBase(b) => Base::A, // TODO: this is just for now since the error correction will deal with the NotBase
+                })
+                .collect::<Vec<Base>>();
+            decoder.decode(&bases)
         })
-        .collect::<Vec<Base>>();
-    Ok(decoder.decode(&bases).to_string())
+        .collect();
+    let blocker = BitBlocker {};
+    let decoded_file = blocker.deblock(decoded_sequences);
+    Ok(decoded_file.to_string())
 }
 
 fn main() {
