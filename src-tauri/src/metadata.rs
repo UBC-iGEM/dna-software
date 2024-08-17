@@ -7,8 +7,7 @@ pub struct MetaData<'a> {
     pub file_path: &'a str,
     pub encoder_type: &'a str,
     pub compression_type: &'a str,
-    pub num_bit_sequences: usize,
-    pub bit_sequence_length: usize,
+    pub bit_sequence_overlaps: usize,
 }
 
 impl MetaData<'_> {

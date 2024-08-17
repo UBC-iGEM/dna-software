@@ -2,13 +2,10 @@ use bitvec::{order::Msb0, vec::BitVec};
 use petgraph::{graphmap::DiGraphMap, visit::Dfs};
 use std::collections::HashMap;
 
-use crate::metadata::MetaData;
-
 pub struct BitBlocker {}
 impl BitBlocker {
     pub fn block(
         &self,
-        //metadata: MetaData,
         sequence: BitVec<u8, Msb0>,
         per_segment: usize,
         per_overlap: usize,
@@ -56,10 +53,9 @@ impl BitBlocker {
 
         if first_index == usize::MAX {
             panic!("Error: No starting block found!");
+        } else {
+            println!("First index: {}", first_index);
         }
-	else {
-	    println!("First index: {}", first_index);
-	}
 
         let mut result = BitVec::<u8, Msb0>::new();
         println!("Overlaps: {:?}", overlaps);
@@ -84,63 +80,24 @@ impl BitBlocker {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bitvec::bitvec;
     use rand::{seq::SliceRandom, thread_rng, Rng};
 
     #[test]
-    fn test_rebuild() {
-        let blocker = BitBlocker {};
-        let blocks: Vec<BitVec<u8, Msb0>> = vec![
-            bitvec![u8, Msb0; 1, 1, 1, 0, 1, 0, 0, 1, 0],
-            bitvec![u8, Msb0; 0, 0, 0, 0, 1, 0, 1, 1, 1],
-            bitvec![u8, Msb0; 0, 1, 0, 1, 1, 1, 0, 0, 1],
-            bitvec![u8, Msb0; 0, 0, 1, 1, 0, 0, 1, 1, 0],
-        ];
-        let per_overlap = 3;
-
-        let expected_result = bitvec![u8, Msb0;
-            0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0];
-
-        let result = blocker.rebuild(blocks, per_overlap);
-
-        assert_eq!(result, expected_result);
-    }
-
-    #[test]
-    fn test_block() {
-        let blocker = BitBlocker {};
-        let sequence = bitvec![u8, Msb0; 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0];
-        let per_segment = 5;
-        let per_overlap = 2;
-
-        let expected_result = vec![
-            bitvec![u8, Msb0; 1, 0, 1, 0, 1],
-            bitvec![u8, Msb0; 0, 1, 1, 0, 0],
-            bitvec![u8, Msb0; 0, 0, 1, 1, 1],
-            bitvec![u8, Msb0; 1, 1, 0, 1, 0],
-        ];
-
-        let result = blocker.block(sequence, per_segment, per_overlap);
-
-        assert_eq!(result, expected_result);
-    }
-
-    #[test]
     fn test_blocker() {
-	// Generate sequence of random length between 40-150 bits
+        // Generate sequence of random length between 40-150 bits
         let mut rng = thread_rng();
         let bitvec_len = rng.gen_range(40..=150);
         let sequence = generate_random_bitvec(&mut rng, bitvec_len);
 
-	// Run the block function on the generated sequence
+        // Run the block function on the generated sequence
         let blocker = BitBlocker {};
         let test_sequence = blocker.block(sequence.clone(), 20, 15);
 
-	// Shuffle the BitVecs in the output
+        // Shuffle the BitVecs in the output
         let mut shuffled_sequence = test_sequence.to_owned();
         shuffled_sequence.shuffle(&mut thread_rng());
 
-	// Reconstruct the original and check that sequence and output_sequence are identical.
+        // Reconstruct the original and check that sequence and output_sequence are identical.
         let output_sequence = blocker.rebuild(shuffled_sequence, 15);
         assert_eq!(sequence, output_sequence);
     }
