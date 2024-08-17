@@ -37,13 +37,13 @@ impl BitBlocker {
         let mut graph = DiGraphMap::<usize, ()>::new();
         let mut first_index = usize::MAX;
 
-        for (i, block) in blocks.iter().enumerate() {
-            let overlap_key = block[block.len() - per_overlap..].to_owned();
+        for (i, chunk) in blocks.iter().enumerate() {
+            let overlap_key = chunk[chunk.len() - per_overlap..].to_owned();
             overlaps.insert(overlap_key, i);
         }
 
-        for (i, block) in blocks.iter().enumerate() {
-            let query = block[..per_overlap].to_owned();
+        for (i, chunk) in blocks.iter().enumerate() {
+            let query = chunk[..per_overlap].to_owned();
             if let Some(&result) = overlaps.get(&query) {
                 graph.add_edge(result, i, ());
             } else {
@@ -58,7 +58,10 @@ impl BitBlocker {
         }
 
         let mut result = BitVec::<u8, Msb0>::new();
-        println!("Overlaps: {:?}", overlaps);
+	println!("Shuffled sequences: ");
+        for (i, chunk) in blocks.iter().enumerate() {
+            println!("Bl{}: {}", i, chunk);
+        }
         println!("Graph edges:");
         for edge in graph.all_edges() {
             println!("{:?}", edge);

@@ -55,7 +55,7 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>
     let bits = BitVec::<_, Msb0>::from_slice(&bytes);
 
     let blocker = BitBlocker {};
-    let (bit_blocks, blocking_metadata) = blocker.block(bits, 20, 19);
+    let bit_blocks = blocker.block(bits, 30, 15);
     let encoder: Box<dyn Encoder> = match encoder_type {
         "quaternary" => Box::new(QuaternaryEncoder {}),
         "rotation" => Box::new(RotationEncoder {}),
@@ -80,8 +80,7 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>
         file_path,
         encoder_type,
         compression_type: "lz4",
-        num_bit_sequences: bit_blocks.len(), // TODO: blocker
-        bit_sequence_length: 19,             // TODO: blocker
+        bit_sequence_overlaps: 15,             // TODO: blocker
         scaffold: &scaffold,
     };
 
@@ -110,7 +109,7 @@ fn decode_sequence(file_paths: Vec<&str>) -> Result<String, String> {
         })
         .collect();
     let blocker = BitBlocker {};
-    let decoded_file = blocker.deblock(decoded_sequences);
+    let decoded_file = blocker.rebuild(decoded_sequences, 15);
     Ok(decoded_file.to_string())
 }
 
