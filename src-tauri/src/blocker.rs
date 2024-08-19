@@ -58,7 +58,7 @@ impl BitBlocker {
         }
 
         let mut result = BitVec::<u8, Msb0>::new();
-	println!("Shuffled sequences: ");
+        println!("Shuffled sequences: ");
         for (i, chunk) in blocks.iter().enumerate() {
             println!("Bl{}: {}", i, chunk);
         }
@@ -82,8 +82,20 @@ impl BitBlocker {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
     use rand::{seq::SliceRandom, thread_rng, Rng};
+
+    #[quickcheck]
+    fn random_vec_check(bytes: Vec<u8>) -> bool {
+        let blocker = BitBlocker {};
+        let bits = BitVec::from_vec(bytes.clone());
+        if bytes.len() > 0 {
+            bits == blocker.rebuild(blocker.block(bits.clone(), 20, 15), 15)
+        } else {
+            true
+        }
+    }
 
     #[test]
     fn test_blocker() {
