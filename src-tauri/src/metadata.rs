@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{compressor::Compressor, encoder::Encoder, primer::Base};
+use crate::primer::Base;
 
 // TODO: don't know if lifetimes are neccesarry
 
