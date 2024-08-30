@@ -34,7 +34,8 @@ impl Scaffolder {
                                     .take(1)
                                     .collect::<Vec<Base>>()[0];
                             }
-                            scaffold_hashmap.insert(scaffolded_position as isize, scaffold_base);
+                            scaffold_hashmap
+                                .insert((scaffolded_position as isize) + 1, scaffold_base);
                             scaffolded_sequence.push(scaffold_base);
                         }
                     }

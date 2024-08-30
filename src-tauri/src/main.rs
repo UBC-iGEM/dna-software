@@ -66,7 +66,9 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>
     let encoded_dna_blocks = vec![encoder.encode(&bits)];
     let scaffolder = Scaffolder {};
     let (scaffolded_dna_blocks, scaffold_metadata) =
-        scaffolder.add_scaffold(encoded_dna_blocks, 0.40 as f32);
+        scaffolder.add_scaffold(encoded_dna_blocks.clone(), 0.40 as f32);
+
+    dbg!(&scaffold_metadata);
 
     let scaffold = Scaffold {
         scaffolded_bases: scaffold_metadata,
@@ -75,10 +77,8 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>
         file_path: file_path.to_string(),
         encoder_type: encoder_type.to_string(),
         compression_type: "lz4".to_string(),
-        num_bit_sequences: 10,   // TODO: blocker
-        bit_sequence_length: 19, // TODO: blocker
         scaffold: scaffold,
-        nucleotide_sequence_length: 10,
+        nucleotide_strand_length: encoded_dna_blocks[0].len() * encoded_dna_blocks.len(),
     };
 
     let mut ret = [

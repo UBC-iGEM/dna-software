@@ -35,6 +35,7 @@ impl TdTAligner {
                         FastaBase::Base(b) => Some(Base::try_from(*b)),
                         FastaBase::NotBase(b) => None,
                     };
+
                     if !compressed_strand.is_empty() {
                         let mut prev_base = compressed_strand.last().unwrap();
                         if curr_base.is_some() {
@@ -51,6 +52,7 @@ impl TdTAligner {
                 compressed_strand
             })
             .collect();
+
         compressed_strands.sort_by(|a, b| a.len().cmp(&b.len()).reverse());
         let top_thirty_strand_index = (compressed_strands.len() as f32 * 0.30) as isize;
         let top_thirty_strand_len = compressed_strands
@@ -94,15 +96,10 @@ impl TdTAligner {
                 strands: aligned_strands,
             });
         }
-        let strand_length = metadata.nucleotide_sequence_length;
-        scaffolded_strands.iter().map(|scaffold_alignment_info| {
-            let base_index_probabilities: Vec<BaseCount> = Vec::new();
-            let scaffold = &scaffold_alignment_info.scaffold;
-            let strands = &scaffold_alignment_info.strands;
-            for strand in strands {
-                for (i, scaffold_base) in scaffold {}
-            }
-        });
+
+        let strand_length = metadata.nucleotide_strand_length;
+        let base_index_probabilities: Vec<BaseCount> = Vec::new();
+
         todo!()
     }
 }
