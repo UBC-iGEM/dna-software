@@ -5,17 +5,24 @@
 #![feature(iter_array_chunks)]
 
 use blocker::BitBlocker;
+use ec::TdTAligner;
 use fasta::{FastaBase, FastaParser, Parser};
 use metadata::{MetaData, Scaffold};
 use primer::{Base, MeltingTemperature, Primer, PrimerInfo};
 use scaffolder::Scaffolder;
+use serde_json::to_string;
 #[cfg(test)]
 extern crate quickcheck;
 #[cfg(test)]
 #[macro_use(quickcheck)]
 extern crate quickcheck_macros;
 
-use std::{fs, path::PathBuf};
+use std::{
+    error::Error,
+    fs::{self, File},
+    io::{BufReader, Write},
+    path::{Path, PathBuf},
+};
 
 use bitvec::{order::Msb0, prelude::BitVec};
 use decoder::{ChurchDecoder, Decoder, QuaternaryDecoder, RotationDecoder};
@@ -24,6 +31,7 @@ use encoder::{ChurchEncoder, Encoder, QuaternaryEncoder, RotationEncoder};
 mod blocker;
 mod chaosdna;
 mod decoder;
+mod ec;
 mod encoder;
 mod fasta;
 mod metadata;
@@ -44,7 +52,7 @@ fn generate_primers(
 fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>, String> {
     let path = PathBuf::from(file_path);
 
-    let bytes = fs::read(path).map_err(|err| err.to_string())?;
+    let bytes = fs::read(path.clone()).map_err(|err| err.to_string())?;
     let bits = BitVec::<_, Msb0>::from_slice(&bytes);
 
     let blocker = BitBlocker {};
@@ -60,41 +68,57 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>
     let (scaffolded_dna_blocks, scaffold_metadata) =
         scaffolder.add_scaffold(encoded_dna_blocks, 0.40 as f32);
 
-    let out_dir = "metadata";
     let scaffold = Scaffold {
         scaffolded_bases: scaffold_metadata,
     };
     let metadata = MetaData {
-        file_path,
-        encoder_type,
-        compression_type: "lz4",
-        num_bit_sequences: 40,   // TODO: blocker
+        file_path: file_path.to_string(),
+        encoder_type: encoder_type.to_string(),
+        compression_type: "lz4".to_string(),
+        num_bit_sequences: 10,   // TODO: blocker
         bit_sequence_length: 19, // TODO: blocker
-        scaffold: &scaffold,
+        scaffold: scaffold,
+        nucleotide_sequence_length: 10,
     };
 
-    fs::create_dir_all(out_dir).unwrap();
+    let mut ret = [
+        path.file_stem().expect("should work").to_str().unwrap(),
+        Some("_metadata").unwrap(),
+    ]
+    .join("");
+    fs::create_dir_all(ret.clone());
+    let outpath = Path::new(&ret).join("metadata").with_extension("json");
+    let mut output_file = File::create(outpath.as_path()).unwrap();
+    let data = serde_json::to_string(&metadata).unwrap();
+    output_file.write_all(data.as_bytes());
 
     Ok(scaffolded_dna_blocks)
 }
 
+fn read_metadata_from_file<P: AsRef<Path>>(path: P) -> Result<MetaData, Box<dyn Error>> {
+    // Open the file in read-only mode with buffer.
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+
+    // Read the JSON contents of the file as an instance of `MetaData`.
+    let m = serde_json::from_reader(reader)?;
+
+    // Return the `MetaData`.
+    Ok(m)
+}
+
 #[tauri::command]
 fn decode_sequence(file_paths: Vec<&str>) -> Result<String, String> {
+    let the_file = "tdt_metadata/metadata.json";
+    let metadata = read_metadata_from_file(the_file).unwrap();
     let decoded_sequences: Vec<BitVec<u8, Msb0>> = file_paths
         .iter()
         .map(|file_path| {
             let fasta_file_content = fs::read_to_string(PathBuf::from(file_path)).unwrap();
             let fasta_bases = FastaParser::parse_into(&fasta_file_content);
+            let corrected_sequence = TdTAligner::compress_align_resolve(&metadata, fasta_bases);
             let decoder = QuaternaryDecoder {};
-            let bases = fasta_bases
-                .into_iter()
-                .flatten()
-                .map(|base| match base {
-                    FastaBase::Base(b) => Base::try_from(b).unwrap(),
-                    FastaBase::NotBase(b) => Base::A, // TODO: this is just for now since the error correction will deal with the NotBase
-                })
-                .collect::<Vec<Base>>();
-            decoder.decode(&bases)
+            decoder.decode(&corrected_sequence)
         })
         .collect();
     let blocker = BitBlocker {};
