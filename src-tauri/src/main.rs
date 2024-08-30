@@ -25,13 +25,11 @@ use std::{
 };
 
 use bitvec::{order::Msb0, prelude::BitVec};
-use compressor::{Compressor, VoidCompressor};
 use decoder::{ChurchDecoder, Decoder, QuaternaryDecoder, RotationDecoder};
 use encoder::{ChurchEncoder, Encoder, QuaternaryEncoder, RotationEncoder};
 
 mod blocker;
 mod chaosdna;
-mod compressor;
 mod decoder;
 mod ec;
 mod encoder;
@@ -54,16 +52,10 @@ fn generate_primers(
 fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>, String> {
     let path = PathBuf::from(file_path);
 
-    let compressor = VoidCompressor {};
-    let compressed = compressor
-        .compress(path.clone())
-        .map_err(|err| err.to_string())?;
-
-    let bytes = fs::read(compressed).map_err(|err| err.to_string())?;
+    let bytes = fs::read(path.clone()).map_err(|err| err.to_string())?;
     let bits = BitVec::<_, Msb0>::from_slice(&bytes);
 
     let blocker = BitBlocker {};
-    let (bit_blocks, blocking_metadata) = blocker.block(bits, 20, 19);
     let encoder: Box<dyn Encoder> = match encoder_type {
         "quaternary" => Box::new(QuaternaryEncoder {}),
         "rotation" => Box::new(RotationEncoder {}),
@@ -71,14 +63,10 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>
         _ => return Err("Selected encoder does not exist.".to_string()),
     };
 
-    let encoded_dna_blocks = bit_blocks
-        .iter()
-        .map(|bit_block| encoder.encode(bit_block))
-        .collect();
-
+    let encoded_dna_blocks = vec![encoder.encode(&bits)];
     let scaffolder = Scaffolder {};
     let (scaffolded_dna_blocks, scaffold_metadata) =
-        scaffolder.add_scaffold(encoded_dna_blocks, 0.20 as f32);
+        scaffolder.add_scaffold(encoded_dna_blocks, 0.40 as f32);
 
     let scaffold = Scaffold {
         scaffolded_bases: scaffold_metadata,
@@ -87,9 +75,10 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>
         file_path: file_path.to_string(),
         encoder_type: encoder_type.to_string(),
         compression_type: "lz4".to_string(),
-        num_bit_sequences: bit_blocks.len(), // TODO: blocker
-        bit_sequence_length: 19,             // TODO: blocker
-        scaffold,
+        num_bit_sequences: 10,   // TODO: blocker
+        bit_sequence_length: 19, // TODO: blocker
+        scaffold: scaffold,
+        nucleotide_sequence_length: 10,
     };
 
     let mut ret = [

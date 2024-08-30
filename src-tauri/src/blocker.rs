@@ -8,7 +8,7 @@ impl BitBlocker {
         per_segment: usize,
         per_overlap: usize,
     ) -> (Vec<BitVec<u8, Msb0>>, usize) {
-        todo!()
+        (vec![sequence], 10)
     }
     pub fn deblock(&self, sequences: Vec<BitVec<u8, Msb0>>) -> BitVec<u8, Msb0> {
         todo!()
