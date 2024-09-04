@@ -1,27 +1,21 @@
 use std::collections::HashMap;
 
-use crate::{compressor::Compressor, encoder::Encoder, primer::Base};
+use serde::{Deserialize, Serialize};
+
+use crate::primer::Base;
 
 // TODO: don't know if lifetimes are neccesarry
 
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Scaffold {
     pub scaffolded_bases: Vec<HashMap<isize, Base>>,
 }
 
-#[derive(Clone, Copy)]
-pub struct MetaData<'a> {
-    pub file_path: &'a str,
-    pub encoder_type: &'a str,
-    pub compression_type: &'a str,
-    pub bit_sequence_overlaps: usize,
-    pub scaffold: &'a Scaffold,
-}
-
-impl MetaData<'_> {
-    fn write_metadata(&self) {
-        todo!()
-    }
-    fn read_metadata(&self) {
-        todo!()
-    }
+#[derive(Clone, Serialize, Deserialize)]
+pub struct MetaData {
+    pub file_path: String,
+    pub encoder_type: String,
+    pub compression_type: String,
+    pub scaffold: Scaffold,
+    pub nucleotide_strand_length: usize,
 }

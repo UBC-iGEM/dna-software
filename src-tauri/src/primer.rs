@@ -22,7 +22,7 @@ pub struct MeltingTemperature {
     constraint: MeltingTemperatureConstraint,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Hash, Deserialize)]
 pub enum Base {
     A,
     T,
