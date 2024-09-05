@@ -98,7 +98,7 @@ impl BitBlocker {
 
         // Output the unordered sequences for debugging.
         let mut result = BitVec::<u8, Msb0>::new();
-	println!("Shuffled sequences: ");
+        println!("Shuffled sequences: ");
         for (i, chunk) in blocks.iter().enumerate() {
             println!("Bl{}: {}", i, chunk);
         }
