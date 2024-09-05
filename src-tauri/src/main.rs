@@ -122,8 +122,15 @@ fn decode_sequence(file_paths: Vec<&str>) -> Result<String, String> {
         })
         .collect();
     let blocker = BitBlocker {};
-    let decoded_file = blocker.deblock(decoded_sequences);
-    Ok(decoded_file.to_string())
+    let rebuild_output = blocker.rebuild(decoded_sequences, 15);
+    match rebuild_output {
+        Ok(decoded_output) => {
+            return Ok(decoded_output.to_string());
+        }
+        Err(error) => {
+            return Err(error.to_string());
+        }
+    }
 }
 
 fn main() {

@@ -739,6 +739,7 @@ dependencies = [
  "g2p",
  "itertools",
  "lz4",
+ "petgraph",
  "quickcheck",
  "quickcheck_macros",
  "rand 0.8.5",
