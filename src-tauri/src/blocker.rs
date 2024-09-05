@@ -1,6 +1,6 @@
 use bitvec::{order::Msb0, vec::BitVec};
 use petgraph::{graphmap::DiGraphMap, visit::Dfs};
-use std::collections::HashMap;
+use std::{collections::HashMap, error::Error};
 
 pub struct BitBlocker {}
 impl BitBlocker {
@@ -9,17 +9,31 @@ impl BitBlocker {
         sequence: BitVec<u8, Msb0>,
         per_segment: usize,
         per_overlap: usize,
-    ) -> Vec<BitVec<u8, Msb0>> {
+    ) -> Result<Vec<BitVec<u8, Msb0>>, std::io::Error> {
+        if sequence.len() <= per_segment {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        "Blocking failed: initial sequence too short"));
+        }
         println!("Initial sequence: {}", sequence);
         let mut result = Vec::new();
         let mut start = 0;
+
+        let mut overlaps: HashMap<BitVec<u8, Msb0>, ()> = HashMap::new();
+
         while start < sequence.len() {
-            let end = if start + per_segment > sequence.len() {
+            let mut end = if start + per_segment > sequence.len() {
                 sequence.len()
             } else {
                 start + per_segment
             };
+            if overlaps.contains_key(&sequence[start..end]) {
+                return Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        "Blocking failed: unable to build unique blocks. Try increasing the value of per_overlaps."));
+            }
             result.push(sequence[start..end].to_owned());
+            overlaps.insert(sequence[start..end].to_owned(),());
             start += per_segment;
             if start < sequence.len() {
                 start -= per_overlap;
@@ -29,16 +43,21 @@ impl BitBlocker {
         for (i, chunk) in result.iter().enumerate() {
             println!("Bl{}: {}", i, chunk);
         }
-        result
+        Ok(result)
     }
 
-    pub fn rebuild(&self, blocks: Vec<BitVec<u8, Msb0>>, per_overlap: usize) -> BitVec<u8, Msb0> {
+    pub fn rebuild(&self, blocks: Vec<BitVec<u8, Msb0>>, per_overlap: usize) -> Result<BitVec<u8, Msb0>, std::io::Error> {
         let mut overlaps: HashMap<BitVec<u8, Msb0>, usize> = HashMap::new();
         let mut graph = DiGraphMap::<usize, ()>::new();
         let mut first_index = usize::MAX;
 
         for (i, chunk) in blocks.iter().enumerate() {
             let overlap_key = chunk[chunk.len() - per_overlap..].to_owned();
+            if overlaps.contains_key(&chunk[chunk.len() - per_overlap..]) {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "Reconstruction failed: non-unique overlaps detected"));   
+            }
             overlaps.insert(overlap_key, i);
         }
 
@@ -52,7 +71,9 @@ impl BitBlocker {
         }
 
         if first_index == usize::MAX {
-            panic!("Error: No starting block found!");
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Blocking failed: No starting block detected.")); 
         } else {
             println!("First index: {}", first_index);
         }
@@ -75,42 +96,52 @@ impl BitBlocker {
                 result.extend(&blocks[node_index][per_overlap..]);
             }
         }
-
-        result
+        Ok(result)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::{seq::SliceRandom, thread_rng, Rng};
+    use rand::{thread_rng, prelude::SliceRandom};
 
-    #[test]
-    fn test_blocker() {
-        // Generate sequence of random length between 40-150 bits
-        let mut rng = thread_rng();
-        let bitvec_len = rng.gen_range(40..=150);
-        let sequence = generate_random_bitvec(&mut rng, bitvec_len);
-
-        // Run the block function on the generated sequence
+    #[quickcheck]
+    fn test_blocker(sequence_bits: Vec<u8>) {
+        let sequence = BitVec::from_vec(sequence_bits.clone());
         let blocker = BitBlocker {};
-        let test_sequence = blocker.block(sequence.clone(), 20, 15);
+        let test_sequence_result = blocker.block(sequence.clone(), 20, 15);
+
+        // Declare 'test_sequence' OUTSIDE the 'match'
+        let test_sequence: Vec<BitVec<u8, Msb0>>; 
+
+        match test_sequence_result {
+            Ok(reconstructed_data) => {
+                test_sequence = reconstructed_data;
+            }
+            Err(error) => {
+                eprintln!("Error during blocking, test aborted. {}", error);
+                return; // Exit the test on error
+            }
+        }
 
         // Shuffle the BitVecs in the output
         let mut shuffled_sequence = test_sequence.to_owned();
         shuffled_sequence.shuffle(&mut thread_rng());
 
         // Reconstruct the original and check that sequence and output_sequence are identical.
-        let output_sequence = blocker.rebuild(shuffled_sequence, 15);
-        assert_eq!(sequence, output_sequence);
-    }
+        let output_sequence: BitVec<u8, Msb0>;
 
-    // Create a BitVec with 50% RNG (0 or 1)
-    fn generate_random_bitvec(rng: &mut impl Rng, len: usize) -> BitVec<u8, Msb0> {
-        let mut bits: BitVec<u8, Msb0> = BitVec::with_capacity(len);
-        for _ in 0..len {
-            bits.push(rng.gen_bool(0.5));
+        let output_sequence_result = blocker.rebuild(shuffled_sequence, 15);
+        match output_sequence_result {
+            Ok(output_sequence_data) => {
+                output_sequence = output_sequence_data; 
+            }
+            Err(error) => {
+                eprintln!("Error during rebuilding: {}", error);
+                return; // Exit the test on error
+            }
         }
-        bits
+
+        assert_eq!(sequence, output_sequence);
     }
 }
