@@ -49,13 +49,12 @@ fn generate_primers(
 }
 
 #[tauri::command]
-fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>, String> {
+fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Base>, String> {
     let path = PathBuf::from(file_path);
 
     let bytes = fs::read(path.clone()).map_err(|err| err.to_string())?;
     let bits = BitVec::<_, Msb0>::from_slice(&bytes);
 
-    let blocker = BitBlocker {};
     let encoder: Box<dyn Encoder> = match encoder_type {
         "quaternary" => Box::new(QuaternaryEncoder {}),
         "rotation" => Box::new(RotationEncoder {}),
@@ -63,12 +62,10 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>
         _ => return Err("Selected encoder does not exist.".to_string()),
     };
 
-    let encoded_dna_blocks = vec![encoder.encode(&bits)];
+    let encoded_dna_blocks = encoder.encode(&bits);
     let scaffolder = Scaffolder {};
     let (scaffolded_dna_blocks, scaffold_metadata) =
         scaffolder.add_scaffold(encoded_dna_blocks.clone(), 0.40 as f32);
-
-    dbg!(&scaffold_metadata);
 
     let scaffold = Scaffold {
         scaffolded_bases: scaffold_metadata,
@@ -78,7 +75,7 @@ fn encode_sequence(encoder_type: &str, file_path: &str) -> Result<Vec<Vec<Base>>
         encoder_type: encoder_type.to_string(),
         compression_type: "lz4".to_string(),
         scaffold: scaffold,
-        nucleotide_strand_length: encoded_dna_blocks[0].len() * encoded_dna_blocks.len(),
+        nucleotide_strand_length: encoded_dna_blocks.len() * encoded_dna_blocks.len(),
     };
 
     let mut ret = [
@@ -108,22 +105,15 @@ fn read_metadata_from_file<P: AsRef<Path>>(path: P) -> Result<MetaData, Box<dyn 
 }
 
 #[tauri::command]
-fn decode_sequence(file_paths: Vec<&str>) -> Result<String, String> {
+fn decode_sequence(file_path: &str) -> Result<String, String> {
     let the_file = "tdt_metadata/metadata.json";
     let metadata = read_metadata_from_file(the_file).unwrap();
-    let decoded_sequences: Vec<BitVec<u8, Msb0>> = file_paths
-        .iter()
-        .map(|file_path| {
-            let fasta_file_content = fs::read_to_string(PathBuf::from(file_path)).unwrap();
-            let fasta_bases = FastaParser::parse_into(&fasta_file_content);
-            let corrected_sequence = TdTAligner::compress_align_resolve(&metadata, fasta_bases);
-            let decoder = QuaternaryDecoder {};
-            decoder.decode(&corrected_sequence)
-        })
-        .collect();
-    let blocker = BitBlocker {};
-    let decoded_file = blocker.deblock(decoded_sequences);
-    Ok(decoded_file.to_string())
+    let fasta_file_content = fs::read_to_string(PathBuf::from(file_path)).unwrap();
+    let fasta_bases = FastaParser::parse_into(&fasta_file_content);
+    let corrected_sequence = TdTAligner::compress_align_resolve(&metadata, fasta_bases);
+    let decoder = QuaternaryDecoder {};
+    let decoded_sequence: BitVec<u8, Msb0> = decoder.decode(&corrected_sequence);
+    Ok(decoded_sequence.to_string())
 }
 
 fn main() {

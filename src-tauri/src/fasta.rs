@@ -1,4 +1,5 @@
 use bio::io::fasta::{self};
+use rand::seq::IteratorRandom;
 use serde::Serialize;
 
 use crate::primer::Base;
@@ -26,12 +27,12 @@ pub enum FastaBase {
 }
 
 pub trait Parser {
-    fn parse_into(fasta_file_content: &str) -> Vec<Vec<FastaBase>>;
+    fn parse_into(fasta_file_content: &str) -> Vec<FastaBase>;
 }
 
 pub struct FastaParser {}
 impl Parser for FastaParser {
-    fn parse_into(fasta_file_content: &str) -> Vec<Vec<FastaBase>> {
+    fn parse_into(fasta_file_content: &str) -> Vec<FastaBase> {
         let reader = fasta::Reader::new(fasta_file_content.as_bytes());
         reader
             .records()
@@ -53,7 +54,8 @@ impl Parser for FastaParser {
                     .map(|maybe_base| maybe_base.unwrap())
                     .collect::<Vec<FastaBase>>()
             })
-            .collect::<Vec<Vec<FastaBase>>>()
+            .flatten()
+            .collect::<Vec<FastaBase>>()
     }
 }
 

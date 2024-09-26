@@ -1,5 +1,10 @@
 use std::collections::HashMap;
 
+use bio::{
+    alignment::{pairwise::Aligner, AlignmentOperation},
+    data_structures::qgram_index::Match,
+};
+
 use crate::{
     fasta::FastaBase,
     metadata::{MetaData, Scaffold},
@@ -16,6 +21,12 @@ pub struct BaseCount {
 pub struct ScaffoldAlignmentInfo {
     strands: Vec<Vec<Base>>,
     scaffold: HashMap<isize, Base>,
+}
+
+pub struct AlignmentInfo {
+    x_start: isize,
+    y_start: isize,
+    matches: Vec<AlignmentOperation>,
 }
 
 pub struct TdTAligner {}
@@ -55,51 +66,13 @@ impl TdTAligner {
 
         compressed_strands.sort_by(|a, b| a.len().cmp(&b.len()).reverse());
         let top_thirty_strand_index = (compressed_strands.len() as f32 * 0.30) as isize;
-        let top_thirty_strand_len = compressed_strands
-            .get(top_thirty_strand_index as usize)
-            .unwrap()
-            .len();
 
-        let mut scaffolded_strands: Vec<ScaffoldAlignmentInfo> = Vec::new();
+        let most_probable_strand: Vec<Base> = Vec::new();
 
-        for scaffold in metadata.scaffold.scaffolded_bases.clone() {
-            let mut scaffold_length = scaffold.len();
-            let mut aligned_strands = Vec::new();
-            let mut seen: Vec<Vec<Base>> = Vec::new();
-            while let Some(strand) = Some(compressed_strands.remove(0)) {
-                if seen.contains(&strand) {
-                    break;
-                } else {
-                    seen.push(strand.clone());
-                }
-                for (index, base) in &scaffold {
-                    // check that scaffold exists
-                    let synthesized_base = strand.get(*index as usize);
-                    if *base == *synthesized_base.unwrap() {
-                        scaffold_length -= 1;
-                    }
-                }
-                if scaffold_length != 0 {
-                    // check if length is long enough
-                    if strand.len() >= top_thirty_strand_len && scaffold_length <= 1 {
-                        aligned_strands.push(strand.clone());
-                    } else {
-                        compressed_strands.push(strand);
-                    }
-                } else {
-                    aligned_strands.push(strand.clone());
-                }
-                scaffold_length = scaffold.len();
-            }
-            scaffolded_strands.push(ScaffoldAlignmentInfo {
-                scaffold: scaffold,
-                strands: aligned_strands,
-            });
+        let scaffold = &metadata.scaffold.scaffolded_bases;
+        for i in 0..top_thirty_strand_index {
+            for (index, base) in scaffold.into_iter() {}
         }
-
-        let strand_length = metadata.nucleotide_strand_length;
-        let base_index_probabilities: Vec<BaseCount> = Vec::new();
-
         todo!()
     }
 }

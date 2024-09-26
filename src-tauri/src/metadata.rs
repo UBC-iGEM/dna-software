@@ -8,7 +8,7 @@ use crate::primer::Base;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Scaffold {
-    pub scaffolded_bases: Vec<HashMap<isize, Base>>,
+    pub scaffolded_bases: HashMap<isize, Base>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
